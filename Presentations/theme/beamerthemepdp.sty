@@ -1,0 +1,559 @@
+% =====================================================================
+%  beamerthemepdp — θέμα beamer (16:9) στα χρώματα του ΠΔΠ / ΠΑΔΑ
+%
+%  Δομή φακέλου:
+%    Presentations/
+%      theme/            κοινό για όλες: αυτό το αρχείο, images/, fonts/
+%      <Επίπεδο>/        Basic, Junior, Senior
+%        <Όνομα>/        ένας φάκελος ανά παρουσίαση
+%          Όνομα.tex
+%          *.cpp         ό,τι χρειάζεται μόνο αυτή η παρουσίαση (για \cppfile)
+%
+%  Χρήση (XeLaTeX, compile μέσα στον φάκελο της παρουσίασης):
+%    \documentclass[t,aspectratio=169,9pt]{beamer}
+%    \makeatletter\def\input@path{{../../theme/}}\makeatother   % το θέμα είναι στο ../../theme/
+%    \usetheme{pdp}
+%    \title{...} \author{...} ...
+%
+%    \pdptitleframe                 % διαφάνεια τίτλου
+%    \pdptocframe{Περιεχόμενα}      % μπλε διαφάνεια με όλες τις ενότητες
+%
+%  Το θέμα φορτώνει ήδη: γραμματοσειρές (Fira Sans, Consolas, New Computer Modern Math Book),
+%  ελληνικά (babel), amsmath, tikz, hyperref (από το beamer), αχνό κείμενο πριν
+%  εμφανιστεί, και μπλε διαφάνεια περιεχομένων στην αρχή κάθε \section/\subsection
+%  (ο τίτλος της αλλάζει με \renewcommand\pdptoctitle{...}).
+%
+%  Blocks (block, exampleblock, alertblock): πλαϊνή γραμμή, χωρίς μπάρα τίτλου.
+%  Κώδικας: \begin{frame}[fragile] ... \begin{cpp} ... \end{cpp}
+%           ή \cppfile{αρχείο.cpp}
+% =====================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{beamerthemepdp}[2026/11/11 PDP beamer theme]
+
+\RequirePackage{tikz}
+\RequirePackage{amsmath}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{listings}
+
+% ---------- Γλώσσα και γραμματοσειρές ----------
+\RequirePackage{fontspec}
+\RequirePackage[main=greek, english]{babel}
+\setsansfont{FiraSans}[Extension=.otf, UprightFont=*-Regular, BoldFont=*-SemiBold,
+  ItalicFont=*-Italic, BoldItalicFont=*-SemiBoldItalic]   % έντονα = SemiBold
+\setmonofont{Consolas}
+\RequirePackage{unicode-math}
+\setmathfont{NewCMMath-Book.otf}   % κλασική Computer Modern, λίγο πιο έντονη (Book) για προβολέα
+\setmathfont{NewCMMath-Bold.otf}[version=bold]   % \boldmath, έντονοι τίτλοι
+
+% ---------- Στοίχιση ----------
+% Πλήρης στοίχιση (αριστερά-δεξιά) με συλλαβισμό αντί για το \raggedright του beamer.
+% Το beamer καλεί \raggedright σε κουκκίδες, στήλες κ.λπ., οπότε το αντικαθιστούμε παντού.
+\RequirePackage{ragged2e}
+\setlength{\JustifyingParindent}{0pt}
+\newif\ifpdpjustify \pdpjustifytrue
+\AtBeginDocument{\ifpdpjustify\let\raggedright\justifying\justifying\fi}
+
+% ---------- Βήματα εμφάνισης ----------
+\setbeamercovered{transparent}   % ό,τι δεν έχει εμφανιστεί ακόμα φαίνεται αχνό
+\newcommand\pdptoctitle{Περιεχόμενα}
+% Διαφάνεια περιεχομένων πριν από κάθε \section και κάθε \subsection.
+%  - \section που ακολουθείται αμέσως από \subsection: δεν βγαίνει δική του
+%    διαφάνεια (θα ήταν σχεδόν ίδια με αυτή της πρώτης υποενότητας).
+%  - \subsection: λευκές μόνο η τρέχουσα ενότητα και η τρέχουσα υποενότητα.
+%  - \pdpsubsectiontocfalse στο preamble: καμία διαφάνεια στις υποενότητες.
+\newif\ifpdpsubsectiontoc \pdpsubsectiontoctrue
+\newif\ifpdp@sectocpending
+\AtBeginSection[]{\global\pdp@sectocpendingtrue}
+\AtBeginSubsection[]{\ifpdpsubsectiontoc
+  \pdptocframe[currentsection,currentsubsection]{\pdptoctitle}\fi}
+\def\pdp@sectoc{\pdptocframe[currentsection]{\pdptoctitle}}
+\def\pdp@aftersection{\ifpdp@sectocpending
+  \global\pdp@sectocpendingfalse\expandafter\pdp@peek\fi}
+\def\pdp@peek{\futurelet\pdp@next\pdp@peek@}
+\def\pdp@peek@{%
+  \ifx\pdp@next\@sptoken \let\pdp@do\pdp@eatsp
+  \else\ifx\pdp@next\par \let\pdp@do\pdp@eatpar
+  \else\ifx\pdp@next\subsection
+    \ifpdpsubsectiontoc\let\pdp@do\relax\else\let\pdp@do\pdp@sectoc\fi
+  \else \let\pdp@do\pdp@sectoc \fi\fi\fi
+  \pdp@do}
+\def\pdp@eatpar\par{\pdp@peek}
+\@firstofone{\def\pdp@eatsp} {\pdp@peek}
+\RequirePackage{etoolbox}
+\apptocmd\beamer@section{\pdp@aftersection}{}%
+  {\PackageWarning{beamerthemepdp}{could not patch \string\beamer@section}}
+
+% ---------- Χρώματα ----------
+\definecolor{pdpblue}{RGB}{31,60,120}
+\definecolor{pdpink}{HTML}{1E1E1E}
+\definecolor{pdpgrey}{RGB}{243,244,246}
+\definecolor{pdpmuted}{HTML}{64748B}
+
+% ---------- Φάκελοι (σχετικά με το .tex που κάνει compile) ----------
+% Ο φάκελος του θέματος βρίσκεται αυτόματα από το \input@path του .tex (π.χ. {../../theme/}),
+% οπότε οι εικόνες και οι γραμματοσειρές βρίσκονται σε όποιο βάθος κι αν είναι η παρουσίαση.
+\@ifundefined{pdpthemedir}{%
+  \@ifundefined{input@path}{\def\pdpthemedir{../../theme/}}%
+    {\edef\pdpthemedir{\expandafter\@firstofone\input@path}}}{}
+\providecommand\pdpcodedir{}            % αρχεία .cpp για το \cppfile (ίδιος φάκελος με το .tex)
+
+% ---------- Εικόνες ----------
+\newcommand\pdplogo{\pdpthemedir images/pdp-logo.png}       % πάνω δεξιά στις λευκές διαφάνειες
+\newcommand\pdplogodark{\pdpthemedir images/pdp-white.png}  % πάνω δεξιά στις μπλε διαφάνειες
+\newcommand\pdpcover{\pdpthemedir images/pdp-white.png}     % στο μπλε κομμάτι της διαφάνειας τίτλου
+% τελική διαφάνεια: αριστερά, κέντρο, δεξιά
+\newcommand\pdpendleft{\pdpthemedir images/uniwa-white.png}
+\newcommand\pdpendcenter{\pdpthemedir images/pdp-white.png}
+\newcommand\pdpendright{\pdpthemedir images/ntua-white.png}
+% ενδιάμεσες διαφάνειες, πάνω δεξιά δίπλα στο ΠΔΠ: σε μπλε (λευκές σελίδες) και σε λευκό (μπλε σελίδες)
+\newcommand\pdpsideleft{\pdpthemedir images/uniwa-blue.png}
+\newcommand\pdpsideright{\pdpthemedir images/ntua-blue.png}
+\newcommand\pdpsideleftdark{\pdpthemedir images/uniwa-white.png}
+\newcommand\pdpsiderightdark{\pdpthemedir images/ntua-white.png}
+
+% ---------- Διαστάσεις ----------
+\newlength\pdpmx     \setlength\pdpmx{9.4mm}     % πλαϊνά περιθώρια
+\newlength\pdplogoh  \setlength\pdplogoh{8mm}    % ύψος λογότυπου πάνω δεξιά
+\newlength\pdpliney  \setlength\pdpliney{13mm}   % γραμμή κάτω από τον τίτλο (από πάνω)
+
+\newif\ifpdpdark     % μπλε διαφάνεια (περιεχόμενα)
+\newif\ifpdptitle    % διαφάνεια τίτλου
+\newif\ifpdpclosing  % τελική διαφάνεια με τα λογότυπα
+\newif\ifpdptitlealllogos \pdptitlealllogostrue % διαφάνεια τίτλου: και τα 3 λογότυπα (false = μόνο το ΠΔΠ)
+
+\setbeamersize{text margin left=\pdpmx, text margin right=\pdpmx}
+\setbeamertemplate{navigation symbols}{}
+
+% ---------- Χρώματα beamer ----------
+\setbeamercolor{normal text}{fg=pdpink}
+\setbeamercolor{structure}{fg=pdpblue}
+\setbeamercolor{alerted text}{fg=pdpblue}
+\setbeamercolor{frametitle}{fg=pdpblue}
+\setbeamercolor{title}{fg=pdpblue}
+\setbeamercolor{subtitle}{fg=pdpblue}
+\setbeamercolor{section in toc}{fg=white}
+\setbeamercolor{bibliography entry author}{fg=pdpink}
+\setbeamercolor{bibliography entry title}{fg=pdpink}
+\setbeamercolor{bibliography entry note}{fg=pdpink}
+
+\setbeamertemplate{itemize items}{\scriptsize\raise0.15ex\hbox{$\blacktriangleright$}}
+\setbeamertemplate{enumerate items}[default]
+\setbeamertemplate{bibliography item}{\insertbiblabel}
+
+% ---------- Γραμματοσειρές ----------
+\setbeamerfont{frametitle}{size=\fontsize{12}{14}\selectfont, series=\bfseries}
+\setbeamerfont{framesubtitle}{size=\small, series=\mdseries}
+\setbeamerfont{title}{size=\fontsize{17}{20}\selectfont, series=\bfseries}
+\setbeamerfont{subtitle}{size=\fontsize{11}{13}\selectfont}
+\setbeamerfont{author}{size=\normalsize, series=\bfseries}
+\setbeamerfont{institute}{size=\small}
+
+% ---------- Blocks: πλαϊνή γραμμή, ο τίτλος έντονος μέσα στην πρώτη γραμμή ----------
+% Ίδια συμπεριφορά για block (μπλε), alertblock (κόκκινο), exampleblock (πράσινο).
+%
+% Σειρά εμφάνισης: το κουτί και ο τίτλος εμφανίζονται στο βήμα όπου ανοίγει το block.
+% Το κείμενο μέσα ακολουθεί τα δικά σου \pause, π.χ.
+%   \begin{block}{Απόδειξη.} Πρώτη πρόταση. \pause Δεύτερη. \end{block}
+%      → κουτί + πρώτη πρόταση μαζί, η δεύτερη στο επόμενο βήμα
+%   \begin{block}{Απόδειξη.} \pause Όλο το κείμενο. \end{block}
+%      → πρώτα μόνο το κουτί με τον τίτλο, το κείμενο στο επόμενο βήμα
+%
+% Για να μένει το κουτί ορατό ενώ το κείμενο είναι ακόμα αχνό, κρατάμε την κατάσταση
+% «αχνότητας» του beamer τη στιγμή που ανοίγει το block και τη χρησιμοποιούμε όταν
+% σχεδιάζεται το κουτί (το tcolorbox σχεδιάζει το φόντο του στο τέλος).
+% \pdp@blockbegin[φόντο]{χρώμα}: χωρίς [φόντο] → πολύ ανοιχτή απόχρωση του χρώματος
+\newcommand\pdp@blockbegin[2][]{%
+  \par\vskip0.6\medskipamount
+  \global\let\pdp@hook@begin\beamer@colorhook
+  \global\let\pdp@ext@begin\beamer@pgfextension
+  \ifx\relax#1\relax\def\pdp@blockbg{#2!6}\else\def\pdp@blockbg{#1}\fi
+  \pdp@blockbox{#2}}
+\newcommand\pdp@blockbox[1]{%
+  % στρογγυλές γωνίες όπως ο κώδικας· η πλαϊνή γραμμή κόβεται στο σχήμα του κουτιού
+  \begin{tcolorbox}[enhanced, breakable=false, arc=3pt, boxrule=0pt,
+      colback=\pdp@blockbg, colframe=\pdp@blockbg, frame hidden,
+      overlay={\begin{tcbclipinterior}\fill[#1] (interior.south west)
+        rectangle ([xshift=2pt]interior.north east-|interior.west);\end{tcbclipinterior}},
+      left=6pt, right=6pt, top=4pt, bottom=4pt, before skip=0pt, after skip=0pt]
+  \ifx\insertblocktitle\@empty\else{\color{#1}\bfseries\insertblocktitle}\ \fi
+  \ignorespaces}
+\newcommand\pdp@blockend{%
+  % το κουτί σχεδιάζεται με την κατάσταση που είχε το block όταν άνοιξε
+  \global\let\pdp@hook@end\beamer@colorhook
+  \global\let\pdp@ext@end\beamer@pgfextension
+  \global\let\beamer@colorhook\pdp@hook@begin
+  \global\let\beamer@pgfextension\pdp@ext@begin
+  \end{tcolorbox}%
+  \global\let\beamer@colorhook\pdp@hook@end
+  \global\let\beamer@pgfextension\pdp@ext@end
+  \color{.}%
+  \par\vskip0.6\medskipamount}
+
+\setbeamertemplate{block begin}{\pdp@blockbegin{pdpblue}}
+\setbeamertemplate{block end}{\pdp@blockend}
+\setbeamertemplate{block example begin}{\pdp@blockbegin{green!45!black}}
+\setbeamertemplate{block example end}{\pdp@blockend}
+\setbeamertemplate{block alerted begin}{\pdp@blockbegin{red!65!black}}
+\setbeamertemplate{block alerted end}{\pdp@blockend}
+
+% Κίτρινο κουτί για σημειώσεις: \begin{noteblock}{Σημείωση.} ... \end{noteblock}
+% (σκούρο κεχριμπαρένιο για γραμμή/τίτλο, γιατί το καθαρό κίτρινο δεν διαβάζεται σε λευκό)
+\definecolor{pdpnote}{RGB}{184,124,0}
+\definecolor{pdpnotebg}{RGB}{255,247,214}
+\newenvironment{noteblock}[1]%
+  {\def\insertblocktitle{#1}\pdp@blockbegin[pdpnotebg]{pdpnote}}%
+  {\pdp@blockend}
+
+% ---------- Κώδικας C++: όπως στο VS Code ----------
+% Δύο εμφανίσεις, με τα χρώματα των θεμάτων «Visual Studio 2017 Light/Dark - C++»
+% (ms-vscode.cpptools-themes):
+%   \pdpcodelight  (προεπιλογή) λευκό πλαίσιο με λεπτό μπλε περίγραμμα, όπως ο ψευδοκώδικας
+%   \pdpcodedark   σκούρο πλαίσιο, όπως ο editor του VS Code
+% Ισχύουν από εκεί που γράφονται: στο preamble για όλη την παρουσίαση, ή μέσα σε ένα frame.
+% Γραμματοσειρά Cascadia Code με 'calt' και 'ss19', ύψος γραμμής 1.5 — όπως στο settings.json.
+\tcbuselibrary{listings}
+\RequirePackage{fontspec}
+% Στατικά αρχεία στον φάκελο theme/fonts/ (η εγκατεστημένη Cascadia των Windows είναι variable font,
+% που το XeLaTeX δεν μπορεί να ενσωματώσει στο PDF).
+\newfontfamily\pdpcodefont{CascadiaCode}[Path=\pdpthemedir fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  Contextuals=Alternate, RawFeature={+calt,+ss19}]
+
+% Ανοιχτό: «Visual Studio 2017 Light - C++»
+\newcommand\pdpcodelight{%
+  \definecolor{vsbg}{HTML}{FFFFFF}%       editor.background
+  \colorlet{vsframe}{pdpblue!30}%         περίγραμμα, ίδιο με τον ψευδοκώδικα
+  \definecolor{vsfg}{HTML}{000000}%       variable
+  \definecolor{vskw}{HTML}{0000FF}%       keyword, storage.type
+  \definecolor{vstype}{HTML}{2B91AF}%     entity.name.type / class
+  \definecolor{vsstr}{HTML}{A31515}%      stringLiteral
+  \definecolor{vsnum}{HTML}{098658}%      constant.numeric
+  \definecolor{vscom}{HTML}{008000}%      comment
+  \definecolor{vsdir}{HTML}{808080}%      keyword.control.directive (#include)
+  \definecolor{vsmacro}{HTML}{0000FF}%    entity.name.function.preprocessor (INF)
+  \definecolor{vslineno}{HTML}{2B91AF}}%  editorLineNumber.foreground
+% Σκούρο: «Visual Studio 2017 Dark - C++»
+\newcommand\pdpcodedark{%
+  \definecolor{vsbg}{HTML}{1E1E1E}%
+  \colorlet{vsframe}{vsbg!80!white}%
+  \definecolor{vsfg}{HTML}{C8C8C8}%
+  \definecolor{vskw}{HTML}{569CD6}%
+  \definecolor{vstype}{HTML}{4EC9B0}%
+  \definecolor{vsstr}{HTML}{D69D85}%
+  \definecolor{vsnum}{HTML}{B5CEA8}%
+  \definecolor{vscom}{HTML}{6A9955}%
+  \definecolor{vsdir}{HTML}{9B9B9B}%
+  \definecolor{vsmacro}{HTML}{BD63C5}%
+  \definecolor{vslineno}{HTML}{2B91AF}}
+\pdpcodelight
+
+\newcommand\pdpcodesize{\fontsize{6.4}{9.6}\selectfont} % ύψος γραμμής 1.5 × μέγεθος, όπως στο VS Code
+
+% Το listings τυπώνει * και - με μαθηματικά σύμβολα (χαμηλωμένο αστεράκι, μακρύ πλην) όταν η
+% γραμματοσειρά δεν είναι η \ttfamily του εγγράφου. Του λέμε να κρατά τους χαρακτήρες της Cascadia.
+\newcommand\pdp@codeinit{\let\lst@ttfamily\@firstoftwo}
+
+% Αυτόματη αφαίρεση εσοχής: ο κώδικας ξεκινά από το αριστερό άκρο του πλαισίου, όση εσοχή
+% κι αν έχει στο .tex ή στο .cpp. Βρίσκουμε την εσοχή της λιγότερο εσοχής γραμμής (αγνοώντας τις
+% κενές) μέσα στο εύρος firstline–lastline, γράφουμε ένα αντίγραφο του κώδικα χωρίς αυτήν
+% (\jobname.pdpcode) και το listings διαβάζει αυτό. Τα tab στην αρχή μετράνε 4 κενά.
+% Με gobble=… αφαιρούνται ακριβώς τόσοι χαρακτήρες αντί για την αυτόματη εσοχή.
+% (Το gobble του listings δεν δουλεύει για κώδικα από αρχείο, γι' αυτό το κάνουμε εδώ.)
+\ExplSyntaxOn
+\ior_new:N \g__pdp_code_ior
+\iow_new:N \g__pdp_code_iow
+\int_new:N \l__pdp_min_int
+\int_new:N \l__pdp_line_int
+\int_new:N \l__pdp_first_int
+\int_new:N \l__pdp_last_int
+\seq_new:N \l__pdp_lines_seq
+\tl_new:N \l__pdp_line_tl
+\cs_new:Npn \pdp@codefile {}
+\cs_new_protected:Npn \__pdp_detab:
+  {
+    \regex_replace_once:nnNT { \A(\ *)\t } { \1\ \ \ \ } \l__pdp_line_tl
+      { \__pdp_detab: }
+  }
+\cs_new_protected:Npn \pdp@dedent #1
+  {
+    \seq_clear:N \l__pdp_lines_seq
+    \int_set:Nn \l__pdp_first_int { \lst@firstline }
+    \int_set:Nn \l__pdp_last_int { \lst@lastline }
+    \int_set:Nn \l__pdp_min_int { 100000 }
+    \int_zero:N \l__pdp_line_int
+    \ior_open:Nn \g__pdp_code_ior {#1}
+    \ior_str_map_inline:Nn \g__pdp_code_ior
+      {
+        \int_incr:N \l__pdp_line_int
+        \tl_set:Nn \l__pdp_line_tl {##1}
+        \ifnum \l__pdp_line_int < \lst@firstline \else
+        \ifnum \l__pdp_line_int > \lst@lastline \else
+          \__pdp_detab:
+          \regex_extract_once:nVNT { \A(\ *)\S } \l__pdp_line_tl \l_tmpa_seq
+            {
+              \int_set:Nn \l_tmpa_int
+                { \exp_args:Ne \str_count:n { \seq_item:Nn \l_tmpa_seq { 2 } } }
+              \int_compare:nNnT \l_tmpa_int < \l__pdp_min_int
+                { \int_set_eq:NN \l__pdp_min_int \l_tmpa_int }
+            }
+        \fi \fi
+        \seq_put_right:NV \l__pdp_lines_seq \l__pdp_line_tl
+      }
+    \ior_close:N \g__pdp_code_ior
+    \int_compare:nNnT \l__pdp_min_int = { 100000 } { \int_zero:N \l__pdp_min_int }
+    \ifnum \lst@gobble > \z@ \int_set:Nn \l__pdp_min_int { \lst@gobble } \fi
+    \int_compare:nNnTF \l__pdp_min_int = { 0 }
+      { \cs_set:Npn \pdp@codefile {#1} }
+      {
+        \cs_set:Npe \pdp@codefile { \c_sys_jobname_str .pdpcode }
+        \iow_open:Nn \g__pdp_code_iow { \c_sys_jobname_str .pdpcode }
+        \int_zero:N \l__pdp_line_int
+        \seq_map_inline:Nn \l__pdp_lines_seq
+          {
+            \int_incr:N \l__pdp_line_int
+            \bool_lazy_or:nnTF
+              { \int_compare_p:nNn \l__pdp_line_int < \l__pdp_first_int }
+              { \int_compare_p:nNn \l__pdp_line_int > \l__pdp_last_int }
+              { \iow_now:Ne \g__pdp_code_iow { \tl_to_str:n {##1} } }
+              {
+                \iow_now:Ne \g__pdp_code_iow
+                  { \str_range:nnn {##1} { \l__pdp_min_int + 1 } { -1 } }
+              }
+          }
+        \iow_close:N \g__pdp_code_iow
+      }
+  }
+\ExplSyntaxOff
+\patchcmd\lst@InputListing{\let\lst@gobble\z@}{\pdp@dedent{#1}\let\lst@gobble\z@}{}%
+  {\PackageWarning{beamerthemepdp}{could not patch listings for dedent}}
+\patchcmd\lst@InputListing{\input{#1}}{\input{\pdp@codefile}}{}%
+  {\PackageWarning{beamerthemepdp}{could not patch listings for dedent}}
+
+% Οι ελληνικοί χαρακτήρες (κωδικοί > 255) δεν περνούν από το listings και θα έβγαιναν με το
+% βασικό χρώμα μέσα σε σχόλια/strings. Τους δηλώνουμε ως γράμματα, όπως κάνει το ίδιο για τα λατινικά.
+{\catcode`\^^00=12
+ \gdef\pdp@lstgreek{\lst@CCECUse\lst@ProcessLetter
+   αβγδεζηθικλμνξοπρστυφχψωςάέήίόύώϊϋΐΰΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩΆΈΉΊΌΎΏΪΫ^^00}}
+\lst@AddToHook{SelectCharTable}{\pdp@lstgreek}
+
+\lstdefinestyle{pdpcpp}{
+  language=C++,
+  % το βασικό χρώμα (vsfg) μπαίνει από το πλαίσιο (colupper)
+  basicstyle=\pdp@codeinit\pdpcodefont\pdpcodesize,
+  keywordstyle=\color{vskw},
+  morekeywords={auto,nullptr,constexpr,noexcept,override,final,decltype},
+  keywordstyle=[2]\color{vstype},
+  morekeywords=[2]{vector,pair,set,map,unordered_map,unordered_set,priority_queue,queue,
+    deque,stack,greater,less,tuple,array,string,bitset,size_t,ll,P},
+  keywordstyle=[3]\color{vsmacro},
+  morekeywords=[3]{INF,MOD,MAXN},
+  commentstyle=\color{vscom},
+  stringstyle=\color{vsstr},
+  directivestyle=\color{vsdir},
+  literate=*{0}{{\textcolor{vsnum}{0}}}1 {1}{{\textcolor{vsnum}{1}}}1
+            {2}{{\textcolor{vsnum}{2}}}1 {3}{{\textcolor{vsnum}{3}}}1
+            {4}{{\textcolor{vsnum}{4}}}1 {5}{{\textcolor{vsnum}{5}}}1
+            {6}{{\textcolor{vsnum}{6}}}1 {7}{{\textcolor{vsnum}{7}}}1
+            {8}{{\textcolor{vsnum}{8}}}1 {9}{{\textcolor{vsnum}{9}}}1,
+  numbers=none, numberstyle=\pdpcodefont\pdpcodesize\color{vslineno}, numbersep=8pt,
+  tabsize=4, showstringspaces=false, columns=fullflexible, keepspaces=true,
+  extendedchars=true, upquote=true,
+  breaklines=true, breakatwhitespace=false,
+  aboveskip=0pt, belowskip=0pt,
+}
+
+% Απλό πλαίσιο: μόνο ο κώδικας, λίγο στρογγυλεμένο, χωρίς μπάρα και αριθμούς γραμμών
+% (ίδιες διαστάσεις με το πλαίσιο του ψευδοκώδικα).
+\tcbset{pdpcode/.style={enhanced, listing only, arc=3pt, boxrule=0.4pt,
+    colback=vsbg, colframe=vsframe, colupper=vsfg, boxsep=0pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt, before skip=2pt, after skip=4pt}}
+
+% Με αριθμούς γραμμών, όταν χρειάζεται: [style=numbered]
+\lstdefinestyle{numbered}{numbers=left, xleftmargin=14pt}
+
+% \begin{cpp} ... \end{cpp}          ή  \begin{cpp}[style=numbered]
+% (οποιαδήποτε επιλογή του listings μπαίνει στις αγκύλες)
+% (το "!O{}" κοιτάει για [...] μόνο στην ίδια γραμμή, ώστε μια πρώτη γραμμή κώδικα
+%  που ξεκινά με # — π.χ. #include — να μη διαβάζεται κατά λάθος ως LaTeX)
+\DeclareTCBListing{cpp}{ !O{} }{pdpcode, listing options={style=pdpcpp,#1}}
+% \cppfile[επιλογές listings]{αρχείο.cpp} — το αρχείο διαβάζεται από τον φάκελο της παρουσίασης
+\newtcbinputlisting{\cppfile}[2][]{pdpcode, listing file={\pdpcodedir #2},
+  listing options={style=pdpcpp,#1}}
+
+% ---------- Ψευδοκώδικας σε στυλ Cormen (CLRS, 4η έκδοση) ----------
+% Το clrscode4e.sty (στον φάκελο theme/) είναι του ίδιου του Cormen, από το
+% https://mitp-content-server.mit.edu/books/content/sectbyfn/books_pres_0/11599/clrscode4e.sty
+% και βγάζει τη μορφή του βιβλίου: ονόματα διαδικασιών σε μικρά κεφαλαία, έντονες λέξεις-κλειδιά,
+% αριθμημένες γραμμές, εσοχές χωρίς «end», ανάθεση με =, έλεγχος με ==, σχόλια // σε σκούρο κόκκινο.
+%   \begin{pseudo}
+%   \Procname{$\proc{Insertion-Sort}(A, n)$}
+%   \li \For $i \gets 2$ \To $n$
+%   \li   \Do $\id{key} \gets A[i]$
+%   ...   \End
+%   \end{pseudo}
+% Το clrscode4e ζητά xcolor με [cmyk]· το beamer το έχει ήδη φορτώσει, οπότε δηλώνουμε ότι
+% η επιλογή υπάρχει, για να μη βγει «option clash» (τα χρώματα μετατρέπονται κανονικά).
+\@ifpackagewith{xcolor}{cmyk}{}{%
+  \expandafter\edef\csname opt@xcolor.sty\endcsname{\csname opt@xcolor.sty\endcsname,cmyk}}
+\RequirePackage{clrscode4e}
+\selectcolormodel{natural}   % το clrscode4e γυρίζει τα χρώματα σε CMYK (για εκτύπωση)· τα θέλουμε όπως ορίστηκαν
+\definecolor{pdptan}{cmyk}{0,0.05,0.17,0}   % το ανοιχτό μπεζ φόντο του βιβλίου: \begin{pseudo}[colback=pdptan]
+\newfontfamily\pdppseudofont{Libertinus Serif}   % serif όπως στο βιβλίο, με ελληνικά και μικρά κεφαλαία
+\newcommand\pdppseudosize{\small}
+\newenvironment{pseudo}[1][]{%
+  \par
+  % όπως στα κουτάκια: το πλαίσιο σχεδιάζεται με την κατάσταση της αρχής του (όχι αχνό)
+  \global\let\pdp@hook@begin\beamer@colorhook
+  \global\let\pdp@ext@begin\beamer@pgfextension
+  \begin{tcolorbox}[enhanced, arc=3pt, boxrule=0.4pt, colback=white, colframe=pdpblue!30,
+      left=8pt, right=8pt, top=2pt, bottom=4pt, boxsep=0pt, before skip=2pt, after skip=4pt,
+      width=\linewidth, #1]
+  \pdppseudofont\pdppseudosize
+  % κάθε γραμμή ξαναδιαβάζει το τρέχον χρώμα, ώστε να δουλεύει το \pause ανάμεσα σε γραμμές
+  \let\pdp@li\li \renewcommand{\li}{\pdp@li\color{.}}%
+  \let\pdp@zi\zi \renewcommand{\zi}{\pdp@zi\color{.}}%
+  % το ίδιο μετά από κάθε αλλαγή στήλης (\Do, \Then, \Else, ...), αλλιώς το κείμενο μετά από αυτά
+  % στην ίδια γραμμή δεν γίνεται αχνό
+  \let\pdp@Do\Do \renewcommand{\Do}{\pdp@Do\color{.}}%
+  \let\pdp@Then\Then \renewcommand{\Then}{\pdp@Then\color{.}}%
+  \let\pdp@Else\Else \renewcommand{\Else}{\pdp@Else\color{.}}%
+  \let\pdp@ElseNoIf\ElseNoIf \renewcommand{\ElseNoIf}{\pdp@ElseNoIf\color{.}}%
+  \let\pdp@Repeat\Repeat \renewcommand{\Repeat}{\pdp@Repeat\color{.}}%
+  % ονόματα διαδικασιών/σταθερών και πολυγράμματα αναγνωριστικά με τη serif του ψευδοκώδικα
+  % (αλλιώς το \textnormal του clrscode3e θα έπαιρνε τη sans των διαφανειών)
+  \renewcommand{\proc}[1]{\textnormal{\pdppseudofont\scshape ##1}}%
+  \renewcommand{\const}[1]{\textnormal{\pdppseudofont\scshape ##1}}%
+  \renewcommand{\id}[1]{\ensuremath{\textnormal{\pdppseudofont\itshape ##1}}}%
+  \begin{codebox}}
+  {\end{codebox}%
+   \global\let\pdp@hook@end\beamer@colorhook
+   \global\let\pdp@ext@end\beamer@pgfextension
+   \global\let\beamer@colorhook\pdp@hook@begin
+   \global\let\beamer@pgfextension\pdp@ext@begin
+   \end{tcolorbox}%
+   \global\let\beamer@colorhook\pdp@hook@end
+   \global\let\beamer@pgfextension\pdp@ext@end
+   \color{.}\par}
+
+% ---------- Φόντο: λογότυπο, τίτλος, γραμμή, αρίθμηση ----------
+\setbeamertemplate{background}{%
+  \begin{tikzpicture}[x=1pt, y=1pt]
+    \useasboundingbox (0,0) rectangle (\paperwidth, \paperheight);
+    \ifpdptitle
+      % διαγώνιο μπλε κομμάτι δεξιά
+      \fill[pdpblue] (0.74\paperwidth, \paperheight) -- (\paperwidth, \paperheight)
+                  -- (\paperwidth, 0) -- (0.56\paperwidth, 0) -- cycle;
+      \ifpdptitlealllogos
+        % ΠΔΠ στο κέντρο του μπλε κομματιού, από κάτω ΠΑΔΑ (αριστερά) και ΕΜΠ (δεξιά)
+        \node[inner sep=0pt] (pdp@c) at (0.83\paperwidth, 48mm)
+          {\includegraphics[width=46mm]{\pdpendcenter}};
+        \node[inner sep=0pt, anchor=north east] at ([xshift=-4mm, yshift=-7mm]pdp@c.south)
+          {\includegraphics[height=17mm]{\pdpendleft}};
+        \node[inner sep=0pt, anchor=north west] at ([xshift=4mm, yshift=-7mm]pdp@c.south)
+          {\includegraphics[height=17mm]{\pdpendright}};
+      \else\ifx\pdpcover\@empty\else
+        \node[anchor=south east, inner sep=0pt] at ([xshift=-6mm, yshift=8mm]\paperwidth, 0)
+          {\includegraphics[width=0.3\paperwidth]{\pdpcover}};
+      \fi\fi
+    \else\ifpdpclosing
+      % τελική διαφάνεια: μόνο μπλε φόντο, τα λογότυπα είναι στο περιεχόμενο
+      \fill[pdpblue] (0,0) rectangle (\paperwidth, \paperheight);
+    \else
+      \ifpdpdark \fill[pdpblue] (0,0) rectangle (\paperwidth, \paperheight); \fi
+      % λογότυπα πάνω δεξιά: ΠΑΔΑ – ΠΔΠ – ΕΜΠ
+      \node[anchor=north east, inner sep=0pt] (pdp@r) at ([xshift=-\pdpmx, yshift=-3.6mm]\paperwidth, \paperheight)
+        {\includegraphics[height=\pdplogoh]{\ifpdpdark\pdpsiderightdark\else\pdpsideright\fi}};
+      \node[anchor=north east, inner sep=0pt] (pdp@m) at ([xshift=-2.5mm]pdp@r.north west)
+        {\includegraphics[height=\pdplogoh]{\ifpdpdark\pdplogodark\else\pdplogo\fi}};
+      \node[anchor=north east, inner sep=0pt] at ([xshift=-2.5mm]pdp@m.north west)
+        {\includegraphics[height=\pdplogoh]{\ifpdpdark\pdpsideleftdark\else\pdpsideleft\fi}};
+      % τίτλος αριστερά, κάτω από τη γραμμή στο ύψος των λογοτύπων
+      \node[anchor=west, inner sep=0pt, text width=\paperwidth-2\pdpmx-\pdplogoh*5.5-9mm,
+            font=\usebeamerfont{frametitle}, text=\ifpdpdark white\else pdpblue\fi]
+        at (\pdpmx, \paperheight-3.6mm-0.5\pdplogoh)
+        {\insertframetitle\ifx\beamer@framesubtitle\@empty\else\\[-1pt]{\usebeamerfont{framesubtitle}\insertframesubtitle}\fi};
+      % λεπτή γραμμή κάτω από τον τίτλο
+      \draw[line width=0.5pt, \ifpdpdark white!50!pdpblue\else pdpblue!35\fi]
+        (\pdpmx, \paperheight-\pdpliney) -- (\paperwidth-\pdpmx, \paperheight-\pdpliney);
+      % αρίθμηση (όχι στις σελίδες περιεχομένων, που δεν μετράνε)
+      \ifpdpdark\else
+      \node[anchor=south west, inner sep=0pt, font=\tiny, text=pdpmuted]
+        at (\pdpmx, 3.8mm) {\insertframenumber\,/\,\inserttotalframenumber};
+      \fi
+    \fi\fi
+  \end{tikzpicture}%
+}
+
+% Ο τίτλος σχεδιάζεται στο φόντο· εδώ μόνο κρατάμε χώρο από πάνω και κάτω.
+\setbeamertemplate{frametitle}{}
+\setbeamertemplate{headline}{\vskip 15.5mm}
+\setbeamertemplate{footline}{\vskip 4.5mm}
+
+% ---------- Πίνακας περιεχομένων (στις μπλε διαφάνειες) ----------
+\setbeamertemplate{section in toc}{%
+  \leavevmode{\scriptsize\raise0.15ex\hbox{$\blacktriangleright$}}\hspace{0.6em}\inserttocsection\par\vspace{0.6em}}
+\setbeamertemplate{section in toc shaded}{%
+  {\color{white!40!pdpblue}\leavevmode{\scriptsize\raise0.15ex\hbox{$\blacktriangleright$}}\hspace{0.6em}\inserttocsection\par}\vspace{0.6em}}
+% Υποενότητες: κάτω από την ενότητά τους, με εσοχή, μικρότερα γράμματα και κενό τρίγωνο.
+% Στις σελίδες ανά ενότητα φαίνονται μόνο οι υποενότητες της τρέχουσας ενότητας.
+\newcommand\pdp@subtocitem{%
+  \leavevmode\hspace*{1.7em}{\tiny\raise0.3ex\hbox{$\triangleright$}}\hspace{0.5em}%
+  {\small\inserttocsubsection}\par\vspace{0.3em}}
+\setbeamertemplate{subsection in toc}{\vspace{-0.3em}\pdp@subtocitem\vspace{0.1em}}
+\setbeamertemplate{subsection in toc shaded}{%
+  \vspace{-0.3em}{\color{white!40!pdpblue}\pdp@subtocitem}\vspace{0.1em}}
+
+% ---------- Διαφάνεια τίτλου ----------
+\setbeamertemplate{title page}{%
+  \vfill
+  \begin{minipage}{0.5\paperwidth}
+    \rightskip 0pt plus 1fil\relax \spaceskip\fontdimen2\font\relax \hyphenpenalty 10000\relax
+    {\usebeamerfont{title}\usebeamercolor[fg]{title}\inserttitle\par}
+    \ifx\beamer@subtitle\@empty\else
+      \vspace{0.3em}{\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par}
+    \fi
+    \vspace{0.6em}{\usebeamerfont{author}\insertauthor\par}
+    {\usebeamerfont{institute}\insertinstitute\par}
+    {\usebeamerfont{date}\insertdate\par}
+  \end{minipage}
+  \vfill
+}
+
+\newcommand\pdptitleframe{%
+  \begingroup\pdptitletrue
+  \begin{frame}[plain,c,noframenumbering]\titlepage\end{frame}%
+  \endgroup}
+
+% \pdptocframe{Τίτλος}                  όλες οι ενότητες
+% \pdptocframe[currentsection]{Τίτλος}  η τρέχουσα λευκή, οι άλλες αχνές
+\newcommand\pdptocframe[2][]{%
+  \begingroup\pdpdarktrue
+  \setbeamercolor{normal text}{fg=white}%
+  \setbeamercolor{structure}{fg=white}%
+  \begin{frame}[noframenumbering]\frametitle{#2}\vspace{2mm}\tableofcontents[#1]\end{frame}%
+  \endgroup}
+
+% Τελική διαφάνεια: μπλε φόντο με τα λογότυπα ΠΑΔΑ – ΠΔΠ – ΕΜΠ σε λευκό
+\newcommand\pdpclosingframe{%
+  \begingroup\pdpclosingtrue
+  \begin{frame}[plain,c,noframenumbering]
+    \centering
+    \begin{tikzpicture}
+      \node[inner sep=0pt] (c) at (0,0) {\includegraphics[width=56mm]{\pdpendcenter}};
+      \node[inner sep=0pt] at ([xshift=-12mm]c.west) [anchor=east]
+        {\includegraphics[height=30mm]{\pdpendleft}};
+      \node[inner sep=0pt] at ([xshift=12mm]c.east) [anchor=west]
+        {\includegraphics[height=30mm]{\pdpendright}};
+    \end{tikzpicture}
+  \end{frame}%
+  \endgroup}
+
+% Υπογραμμισμένη ετικέτα: \field{Είσοδος:}
+\newcommand\field[1]{\par\smallskip{\usebeamercolor[fg]{structure}\underline{#1}}\par\smallskip}
+
+% Σύνδεσμος-κουμπί: \pdpcodelink{url}{Ενδεικτική κωδικοποίηση}
+\newcommand\pdpcodelink[2]{%
+  \href{#1}{\setlength\fboxrule{0.6pt}\setlength\fboxsep{4pt}%
+    \fcolorbox{pdpblue}{white}{\textcolor{pdpblue}{\textbf{#2}~$\nearrow$}}}}
+
+\mode<all>

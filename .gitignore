@@ -1,0 +1,31 @@
+# --- LaTeX: βοηθητικά αρχεία του compile ---
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.vrb
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex(busy)
+*.xdv
+*.bbl
+*.blg
+*.listing
+*.pdpcode
+
+# --- PDF: ξαναβγαίνουν με compile (XeLaTeX) ---
+*.pdf
+
+# --- C++: εκτελέσιμα από δοκιμές των .cpp ---
+*.exe
+*.o
+*.out.txt
+
+# --- Συστήματος / editor ---
+Thumbs.db
+desktop.ini
+.DS_Store
+*~

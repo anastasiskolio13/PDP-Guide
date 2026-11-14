@@ -1,0 +1,200 @@
+% !TeX program = xelatex
+% =====================================================================
+%  Demo του θέματος beamerthemepdp.sty
+% =====================================================================
+\documentclass[t,aspectratio=169,9pt]{beamer}
+\makeatletter\def\input@path{{../../theme/}}\makeatother   % το κοινό θέμα βρίσκεται στο Presentations/theme/
+\usetheme{pdp}
+
+\title{Δομή Επανάληψης}
+% \subtitle{Demo του νέου θέματος}
+\author{Αναστάσης Κολιόπουλος}
+% \institute{Πανελλήνιος Διαγωνισμός Πληροφορικής}
+\date{}
+
+\begin{document}
+
+\pdptitleframe
+\pdptocframe{Περιεχόμενα}
+
+% =====================================================================
+\section{Ο βρόχος \texttt{while}}
+
+\begin{frame}{Ο βρόχος \texttt{while}}
+  \field{Είσοδος:}
+  \pause
+  \begin{itemize}
+    \item Κατευθυνόμενο γράφημα $G = (V, E)$ με $w(e) \geq 0$ για κάθε $e \in E$, όπου $n = |V|$ και $m = |E|$.
+    \pause
+    \item Αφετηριακή κορυφή $s \in V$.
+  \end{itemize}
+  \pause
+  \field{Έξοδος:}
+  \pause
+  \begin{itemize}
+    \item Η απόσταση $d(v)$ από την $s$ για κάθε κορυφή $v \in V$.
+  \end{itemize}
+  \pause
+  \field{Ιδέα:}
+  \pause
+  Σε κάθε βήμα «οριστικοποιούμε» την κορυφή με τη μικρότερη προσωρινή απόσταση $D[v]$ και χαλαρώνουμε τις ακμές της:
+  \[
+    D[u] \gets \min\bigl\{D[u],\; D[v] + w(v, u)\bigr\}, \qquad \forall u \in N^+(v).
+  \]
+\end{frame}
+
+
+
+\begin{frame}{Ο βρόχος \texttt{while}}
+  \begin{block}{Παρατήρηση.}
+    \pause
+    Όταν μία κορυφή $v$ εξάγεται από την ουρά προτεραιότητας, ισχύει $D[v] = d(v)$.
+  \end{block}
+  \pause
+  \begin{block}{\emph{Απόδειξη.}}
+    Έστω $v$ η πρώτη κορυφή που εξάγεται με $D[v] > d(v)$ και $P$ ένα συντομότερο $s - v$ μονοπάτι.
+    \pause
+    Έστω $(x, y)$ η πρώτη ακμή του $P$ με $x$ ήδη εξαγμένη και $y$ όχι. Τότε
+    \[
+      D[y] \leq D[x] + w(x, y) = d(y) \leq d(v) < D[v],
+    \]
+    \pause
+    αφού τα βάρη είναι μη αρνητικά. Άρα η $y$ θα είχε εξαχθεί πριν από τη $v$ (άτοπο).
+    \hfill$\blacksquare$
+  \end{block}
+\end{frame}
+
+\begin{frame}{Ο αλγόριθμος του Dijkstra}{Ψευδοκώδικας}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \begin{pseudo}
+        \Procname{$\proc{Dijkstra}(G, w, s)$}
+        \li $\proc{Initialize-Single-Source}(G, s)$
+        \li $S \gets \emptyset$
+        \li $Q \gets \attrib{G}{V}$
+        \li \While $Q \neq \emptyset$
+        \li   \Do
+                $u \gets \proc{Extract-Min}(Q)$
+        \li     $S \gets S \cup \{u\}$
+        \li     \For κάθε κορυφή $v \in \attrib{G}{Adj}[u]$
+        \li       \Do
+                    $\proc{Relax}(u, v, w)$ \Comment{χαλάρωση}
+                  \End
+              \End
+        \li   \For $i == 1; \; i \leq n; \; i++$
+        \li     \Do
+        \li ssss
+              \End
+      \end{pseudo}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \pause
+      \begin{itemize}
+        \item Η $Q$ είναι ουρά προτεραιότητας με κλειδί το $\attrib{v}{d}$.
+        \pause
+        \item Κάθε κορυφή εξάγεται μία φορά (γραμμή 5).
+        \pause
+        \item Κάθε ακμή χαλαρώνεται μία φορά (γραμμή 8).
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Ο αλγόριθμος του Dijkstra}{Υλοποίηση σε C++}
+  \begin{columns}[T]
+    \begin{column}{0.62\textwidth}
+\begin{cpp}
+using ll = long long; using P = pair<ll, int>;
+vector<ll> dijkstra(int s) {     // adj: γείτονες
+  vector<ll> D(n, INF);
+  priority_queue<P, vector<P>, greater<>> pq;
+  D[s] = 0; pq.push({0, s});
+  while (!pq.empty()) {
+    auto [d, v] = pq.top(); pq.pop();
+    if (d > D[v]) continue;      // παλιά εγγραφή
+    for (auto [u, w] : adj[v])
+      if (D[v] + w < D[u]) {
+        D[u] = D[v] + w;          // χαλάρωση
+        pq.push({D[u], u});
+      }
+  }
+  return D;
+}
+\end{cpp}
+    \end{column}
+    \begin{column}{0.34\textwidth}
+      \pause
+      \begin{itemize}
+        \item Η \texttt{priority\_queue} με \texttt{greater<>} δίνει πάντα την κορυφή με το μικρότερο $D[v]$.
+        \pause
+        \item Αντί για \emph{decrease-key}, βάζουμε νέα εγγραφή και αγνοούμε τις παλιές με το \texttt{continue}.
+        \pause
+        \item Συνολικά $O\bigl((n + m) \lg n\bigr)$.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Ο αλγόριθμος του Dijkstra}
+  \begin{block}{Χρονική πολυπλοκότητα.}
+    \begin{itemize}
+      \item $O(n \lg n + m \lg n)$ - \emph{Δυαδικός σωρός}.
+      \item $O(n \lg n + m)$ - \emph{Σωρός Fibonacci}.
+    \end{itemize}
+  \end{block}
+  \pause
+  \begin{alertblock}{Προσοχή.}
+    \pause % πρώτα μόνο το κουτί με τον τίτλο, το κείμενο στο επόμενο βήμα
+    Με αρνητικά βάρη ο αλγόριθμος δεν είναι πια σωστός· χρειαζόμαστε τον Bellman--Ford.
+  \end{alertblock}
+  \pause
+  \vspace{0.3cm}
+  \begin{center}
+    \pdpcodelink{https://github.com/anastasiskolio13/ShortestPaths/blob/master/Traveller_Dijkstra.cpp}{Ενδεικτική κωδικοποίηση}
+  \end{center}
+\end{frame}
+
+% =====================================================================
+\section{Ο βρόχος \texttt{do while}}
+
+\begin{frame}{Ο βρόχος \texttt{do while}}
+  Ορίζουμε ως $dp[i][v]$ το μήκος του συντομότερου $s - v$ μονοπατιού με το πολύ $i$ ακμές.
+  \pause
+  \[
+    dp[i][v] =
+    \begin{cases}
+      0, & i = 0 \text{ και } v = s, \\
+      \infty, & i = 0 \text{ και } v \neq s, \\
+      \min\Bigl\{dp[i - 1][v],\; \displaystyle\min_{u \in N^-(v)}\bigl\{dp[i - 1][u] + w(u, v)\bigr\}\Bigr\}, & i \geq 1.
+    \end{cases}
+  \]
+  \pause
+  \begin{exampleblock}{Παρατήρηση.}
+    Αν δεν υπάρχει αρνητικός κύκλος, κάθε συντομότερο μονοπάτι έχει το πολύ $n - 1$ ακμές,
+    \pause % το κουτί εμφανίζεται μαζί με την πρώτη φράση
+    άρα η απάντηση είναι το $dp[n - 1][v]$.
+  \end{exampleblock}
+  \pause
+  Αρκεί να κρατάμε μόνο τις δύο τελευταίες γραμμές του πίνακα: $dp[i \bmod 2][v]$.
+\end{frame}
+
+\begin{frame}[fragile]{Ο βρόχος \texttt{do while}}{Από το αρχείο \texttt{BellmanFord.cpp}}
+  \cppfile[firstline=35, lastline=46]{BellmanFord.cpp}
+  \pause
+  \begin{block}{Χρονική πολυπλοκότητα.}
+    $O(n m)$ χρόνος και $O(n)$ μνήμη.
+  \end{block}
+\end{frame}
+
+\section{Ο βρόχος \texttt{for}}
+
+\begin{frame}{Βιβλιογραφία}
+  \begin{thebibliography}{99}
+    \bibitem{dmagos} Δημήτριος Μάγος. \textit{Στοιχεία Ανάλυσης Αλγορίθμων}. Εκδόσεις Τσότρας, 2024.
+    \bibitem{cormen2022} Cormen, Leiserson, Rivest, Stein. \textit{Introduction to Algorithms}. 4η Έκδοση, MIT Press, 2022.
+  \end{thebibliography}
+\end{frame}
+
+\pdpclosingframe
+
+\end{document}

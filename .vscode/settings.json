@@ -1,0 +1,40 @@
+{
+    // Κοινές ρυθμίσεις: ισχύουν όταν ανοίγεις στο VS Code ολόκληρο τον φάκελο PDP-Guide.
+
+    // Αρχεία: UTF-8 και LF, όπως ορίζει το .gitattributes
+    "files.encoding": "utf8",
+    "files.eol": "\n",
+
+    // LaTeX Workshop: XeLaTeX (το θέμα χρειάζεται fontspec). Η γραμμή
+    // "% !TeX program = xelatex" στην αρχή κάθε .tex επιλέγει ήδη το XeLaTeX.
+    "latex-workshop.latex.tools": [
+        {
+            "name": "xelatex",
+            "command": "xelatex",
+            "args": ["-synctex=1", "-interaction=nonstopmode", "-file-line-error", "%DOC%"]
+        }
+    ],
+    "latex-workshop.latex.recipes": [
+        { "name": "XeLaTeX ×2", "tools": ["xelatex", "xelatex"] }
+    ],
+    "latex-workshop.latex.recipe.default": "XeLaTeX ×2",
+
+    // Τα βοηθητικά αρχεία μένουν στον φάκελο της παρουσίασης (χρειάζονται για τα περιεχόμενα),
+    // αλλά κρύβονται από τον Explorer. Το .gitignore τα κρατά έξω από το git.
+    "files.exclude": {
+        "**/*.aux": true, "**/*.log": true, "**/*.nav": true, "**/*.out": true,
+        "**/*.snm": true, "**/*.toc": true, "**/*.vrb": true, "**/*.synctex.gz": true,
+        "**/*.listing": true, "**/*.pdpcode": true, "**/*.fls": true, "**/*.fdb_latexmk": true
+    },
+    "latex-workshop.latex.clean.fileTypes": [
+        "*.aux", "*.log", "*.nav", "*.out", "*.snm", "*.toc", "*.vrb", "*.synctex.gz",
+        "*.listing", "*.pdpcode", "*.fls", "*.fdb_latexmk", "*.xdv"
+    ],
+
+    // Λεξικό ορθογραφίας (Code Spell Checker)
+    "cSpell.words": [
+        "Subarray",
+        "υποπίνακα",
+        "υποπίνακες"
+    ]
+}

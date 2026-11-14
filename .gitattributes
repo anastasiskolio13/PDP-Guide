@@ -1,0 +1,15 @@
+# Κείμενο με LF μέσα στο repo και στον δίσκο, σε όλα τα λειτουργικά
+* text=auto eol=lf
+
+*.tex  text eol=lf
+*.sty  text eol=lf
+*.cpp  text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+
+# Binary: χωρίς μετατροπές και χωρίς diff κειμένου
+*.png binary
+*.jpg binary
+*.otf binary
+*.ttf binary
+*.pdf binary
