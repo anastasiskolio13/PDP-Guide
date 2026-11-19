@@ -1,0 +1,625 @@
+% !TeX program = xelatex
+\documentclass[t,aspectratio=169,9pt]{beamer}
+\makeatletter\def\input@path{{../../../theme/}}\makeatother   % το θέμα είναι στο PDP-Guide/theme/
+\usetheme{pdp}
+
+\usetikzlibrary{calc}   % για τα βέλη επιστροφής στο δέντρο αναδρομής
+
+% Δέντρο αναδρομής βήμα-βήμα. visit={λίστα}{n}: ο κόμβος είναι σκούρος στις διαφάνειες
+% της λίστας (εκεί είναι η τρέχουσα κλήση: όταν καλείται και όταν του επιστρέφει ένα παιδί),
+% ανοιχτός από τη διαφάνεια n και μετά (έχει κληθεί) και αχνός πριν από αυτή.
+\tikzset{
+  rec node/.style={draw, rounded corners=2pt, minimum width=1.05cm, minimum height=0.5cm,
+                   inner sep=1pt, font=\footnotesize},
+  rec current/.style={fill=pdpblue, draw=pdpblue, text=white},
+  rec visited/.style={fill=pdpblue!15, draw=pdpblue},
+  rec future/.style={draw=pdpmuted, opacity=0.15},
+  visit/.code 2 args={\alt<#1>{\pgfkeysalso{rec current}}{\alt<#2->{\pgfkeysalso{rec visited}}{\pgfkeysalso{rec future}}}},
+  reach/.code={\alt<#1->{\pgfkeysalso{draw=pdpblue}}{\pgfkeysalso{draw=pdpmuted, opacity=0.15}}},
+  shown/.code={\alt<#1->{}{\pgfkeysalso{opacity=0}}},
+  % βέλος επιστροφής και η τιμή του: έντονα στη διαφάνεια n, αχνά μετά, κρυφά πριν
+  ret/.code={\alt<#1>{\pgfkeysalso{draw=pdpblue}}{\alt<#1->{\pgfkeysalso{draw=pdpblue!35}}{\pgfkeysalso{opacity=0}}}},
+  retval/.code={\alt<#1>{\pgfkeysalso{text=pdpblue}}{\alt<#1->{\pgfkeysalso{text=pdpblue!55}}{\pgfkeysalso{opacity=0}}}}
+}
+
+\title{Εξαντλητική εξέταση}
+\subtitle{Επίπεδο Junior}
+\author{Αναστάσης Κολιόπουλος}
+% \institute{Πανελλήνιος Διαγωνισμός Πληροφορικής}
+\date{}
+
+\begin{document}
+\pdptitleframe                 % πρώτη σελίδα
+\pdptocframe{Περιεχόμενα}      % μπλε σελίδα με όλες τις ενότητες
+
+\section{Εισαγωγή}        % πριν από κάθε ενότητα μπαίνει αυτόματα μπλε σελίδα περιεχομένων
+% \begin{frame}{Τίτλος διαφάνειας}{Υπότιτλος (προαιρετικός)}
+%   ...
+% \end{frame}
+
+\section{Επαναληπτική εξαντλητική εξέταση}
+
+\subsection{Εγγύτερο ζεύγος σημείων}
+\begin{frame}{Επαναληπτική εξαντλητική εξέταση}{Εγγύτερο ζεύγος σημείων}
+\field{Είσοδος:}
+\begin{itemize}
+    \pause
+    \item Πίνακες ακεραίων $X[0..n-1]$ και $Y[0..n-1]$, όπου $(X[i], Y[i])$ είναι οι συντεταγμένες
+    του $i$-οστού σημείου.
+\end{itemize}
+\pause
+\field{Έξοδος:}
+\begin{itemize}
+    \pause
+    \item Η ελάχιστη Ευκλείδεια απόσταση μεταξύ δύο σημείων, δηλαδή, η εύρεση της τιμής
+    \begin{align*}
+        \text{minimumDistance} = \min_{0 \leq i < j \leq n-1}
+        \left\{ \sqrt{(X[i] - X[j])^{2} + (Y[i] - Y[j])^{2}} \right\}.
+    \end{align*}
+\end{itemize}
+    \pause
+    \field{Λύση:}
+    \begin{itemize}
+        \pause 
+        \item Σύμφωνα με την τεχνική της εξάντλησης, «εξαντλούμε» όλα τα ζεύγη σημείων $(i, j)$. Πιο συγκεκριμένα, για κάθε ζεύγος
+        υπολογίζουμε την απόσταση του $(X[i], Y[i])$ από το $(X[j], Y[j])$.
+        \pause 
+        \item Η ελάχιστη εξ αυτών είναι η απάντηση στο πρόβλημα.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Επαναληπτική εξαντλητική εξέταση}{Εγγύτερο ζεύγος σημείων}
+\begin{cpp}
+double minimumDistance = numeric_limits<double>::max();
+
+for (int i = 0; i < N - 1; ++i) 
+{
+    for (int j = i + 1; j < N; ++j)
+    {
+        double currentDistance = sqrt((X[i] - X[j]) * (X[i] - X[j]) + (Y[i] - Y[j]) * (Y[i] - Y[j]));
+        minimumDistance = min(minimumDistance, currentDistance);
+    }
+}
+\end{cpp}
+\end{frame}
+
+\begin{frame}{Επαναληπτική εξαντλητική εξέταση}{Εγγύτερο ζεύγος σημείων}
+% Πλήρης εκτέλεση για n = 5 σημεία: ένα βήμα για κάθε ζεύγος i < j (10 βήματα).
+% Αριστερά οι πίνακες X, Y με τα βέλη i, j· δεξιά τα σημεία στο επίπεδο με το τρέχον ζεύγος
+% ενωμένο (συνεχής γραμμή) και το καλύτερο ζεύγος μέχρι στιγμής (διακεκομμένη)·
+% από κάτω οι μεταβλητές currentDistance και minimumDistance με την πράξη τους.
+% Αρχικά minimumDistance = numeric_limits<double>::max(), που εδώ γράφεται ∞.
+\vspace{0.2cm}
+\centering
+\begin{tikzpicture}[
+    tab cell/.style={draw=pdpmuted, minimum width=0.75cm, minimum height=0.6cm, inner sep=0pt},
+    var cell/.style={draw=pdpmuted, minimum width=1.1cm, minimum height=0.6cm, inner sep=0pt},
+    % overlay: δεν αλλάζει το μέγεθος του σχήματος, ώστε να μη μετακινείται από βήμα σε βήμα
+    comp box/.style={anchor=west, overlay, font=\footnotesize, text=pdpblue, fill=white,
+                     draw=pdpblue!40, rounded corners=2pt, inner sep=2pt},
+    pt/.style={circle, draw=pdpmuted, fill=white, inner sep=0pt, minimum size=5pt},
+    pt i/.style={pt, draw=pdpblue, fill=pdpblue},
+    pt j/.style={pt, draw=pdpblue, fill=pdpblue!25}]
+
+% Τα σημεία: (X[k], Y[k]) για k = 0..4, και πού γράφεται ο δείκτης τους στο επίπεδο
+\def\pts{1/1/0/below, 7/2/1/below, 4/5/2/above, 8/6/3/above, 5/2/4/below}
+% Το επίπεδο σχεδιάζεται σε scope με αρχή αξόνων στο (5.2, -1.2) και 0.42cm ανά μονάδα
+\tikzset{plane/.style={shift={(5.2,-1.2)}, scale=0.42}}
+
+% ---------- Οι πίνακες X, Y ----------
+\node[anchor=east] at (-0.2,0.3) {$X$};
+\node[anchor=east] at (-0.2,-0.3) {$Y$};
+\foreach \x/\y/\k/\where in \pts {
+  \node[text=pdpmuted, font=\small] at (0.75*\k+0.375,0.95) {$\k$};
+}
+
+% ---------- Το επίπεδο ----------
+\begin{scope}[plane]
+  \draw[pdpmuted!35] (0,0) grid (9,7);
+  \draw[pdpmuted, -latex] (0,0) -- (9.6,0) node[below, font=\scriptsize] {$x$};
+  \draw[pdpmuted, -latex] (0,0) -- (0,7.6) node[left, font=\scriptsize] {$y$};
+\end{scope}
+
+% ---------- Οι μεταβλητές ----------
+\node[anchor=east] at (2.6,-2.45) {\cppinline{currentDistance}};
+\node[anchor=east] at (2.6,-3.2) {\cppinline{minimumDistance}};
+\node[var cell] (cd) at (3.3,-2.45) {};
+\node[var cell] (md) at (3.3,-3.2) {};
+
+% ---------- Τα βήματα ----------
+% \p / i / j / ο υπολογισμός της απόστασης / currentDistance / προηγούμενο ελάχιστο /
+%      νέο ελάχιστο / 1 αν άλλαξε το ελάχιστο / το καλύτερο ζεύγος μέχρι στιγμής (bi, bj)
+\foreach \p/\i/\j/\calc/\cd/\prev/\md/\changed/\bi/\bj in {
+    1/0/1/{\sqrt{(1 - 7)^2 + (1 - 2)^2} = \sqrt{37} \approx 6.08}/6.08/\infty/6.08/1/0/1,
+    2/0/2/{\sqrt{(1 - 4)^2 + (1 - 5)^2} = \sqrt{25} = 5}/5/6.08/5/1/0/2,
+    3/0/3/{\sqrt{(1 - 8)^2 + (1 - 6)^2} = \sqrt{74} \approx 8.60}/8.60/5/5/0/0/2,
+    4/0/4/{\sqrt{(1 - 5)^2 + (1 - 2)^2} = \sqrt{17} \approx 4.12}/4.12/5/4.12/1/0/4,
+    5/1/2/{\sqrt{(7 - 4)^2 + (2 - 5)^2} = \sqrt{18} \approx 4.24}/4.24/4.12/4.12/0/0/4,
+    6/1/3/{\sqrt{(7 - 8)^2 + (2 - 6)^2} = \sqrt{17} \approx 4.12}/4.12/4.12/4.12/0/0/4,
+    7/1/4/{\sqrt{(7 - 5)^2 + (2 - 2)^2} = \sqrt{4} = 2}/2/4.12/2/1/1/4,
+    8/2/3/{\sqrt{(4 - 8)^2 + (5 - 6)^2} = \sqrt{17} \approx 4.12}/4.12/2/2/0/1/4,
+    9/2/4/{\sqrt{(4 - 5)^2 + (5 - 2)^2} = \sqrt{10} \approx 3.16}/3.16/2/2/0/1/4,
+    10/3/4/{\sqrt{(8 - 5)^2 + (6 - 2)^2} = \sqrt{25} = 5}/5/2/2/0/1/4} {
+  \only<\p>{
+    % Πίνακες: η στήλη i σκούρα, η στήλη j ανοιχτή
+    \foreach \x/\y/\k/\where in \pts {
+      \ifnum\k=\i
+        \node[tab cell, fill=pdpblue, draw=pdpblue, text=white] at (0.75*\k+0.375,0.3) {$\mathbf{\x}$};
+        \node[tab cell, fill=pdpblue, draw=pdpblue, text=white] at (0.75*\k+0.375,-0.3) {$\mathbf{\y}$};
+      \else\ifnum\k=\j
+        \node[tab cell, fill=pdpblue!15] at (0.75*\k+0.375,0.3) {$\x$};
+        \node[tab cell, fill=pdpblue!15] at (0.75*\k+0.375,-0.3) {$\y$};
+      \else
+        \node[tab cell] at (0.75*\k+0.375,0.3) {$\x$};
+        \node[tab cell] at (0.75*\k+0.375,-0.3) {$\y$};
+      \fi\fi
+    }
+    % Βέλη i (πάνω) και j (κάτω)
+    \draw[pdpblue, thick, -latex] (0.75*\i+0.375,2.0) -- (0.75*\i+0.375,1.25);
+    \node[text=pdpblue, above] at (0.75*\i+0.375,2.0) {$i$};
+    \draw[pdpblue, thick, -latex] (0.75*\j+0.375,-1.65) -- (0.75*\j+0.375,-0.9);
+    \node[text=pdpblue, below] at (0.75*\j+0.375,-1.65) {$j$};
+
+    % Επίπεδο: το καλύτερο ζεύγος μέχρι στιγμής (διακεκομμένο) και το τρέχον (συνεχές)
+    \begin{scope}[plane]
+      \foreach \x/\y/\k/\where in \pts {
+        \ifnum\k=\bi \coordinate (b1) at (\x,\y); \fi
+        \ifnum\k=\bj \coordinate (b2) at (\x,\y); \fi
+        \ifnum\k=\i  \coordinate (c1) at (\x,\y); \fi
+        \ifnum\k=\j  \coordinate (c2) at (\x,\y); \fi
+      }
+      \draw[pdpblue!60, thick, dashed] (b1) -- (b2);
+      \draw[pdpblue, very thick] (c1) -- (c2);
+      \foreach \x/\y/\k/\where in \pts {
+        \ifnum\k=\i
+          \node[pt i] at (\x,\y) {};
+          \node[\where=2pt, text=pdpblue, font=\scriptsize] at (\x,\y) {$\k$};
+        \else\ifnum\k=\j
+          \node[pt j] at (\x,\y) {};
+          \node[\where=2pt, text=pdpblue, font=\scriptsize] at (\x,\y) {$\k$};
+        \else
+          \node[pt] at (\x,\y) {};
+          \node[\where=2pt, text=pdpmuted, font=\scriptsize] at (\x,\y) {$\k$};
+        \fi\fi
+      }
+    \end{scope}
+
+    % Μεταβλητές: τιμές στα κελιά και η πράξη δίπλα τους
+    \node at (cd) {$\cd$};
+    \ifnum\changed=1
+      \node[var cell, fill=pdpblue, draw=pdpblue, text=white] at (md) {$\mathbf{\md}$};
+    \else
+      \node at (md) {$\md$};
+    \fi
+    \node[comp box] at ([xshift=0.25cm]cd.east) {$\calc$};
+    \node[comp box] at ([xshift=0.25cm]md.east) {$\min(\prev, \cd) = \md$};
+  }
+}
+\end{tikzpicture}
+\pdpskipbuttons   % κουμπιά «Τέλος» και «Παράλειψη» κάτω δεξιά
+\end{frame}
+
+\begin{frame}{Επαναληπτική εξαντλητική εξέταση}{Εγγύτερο ζεύγος σημείων}
+\field{Πολυπλοκότητα:}
+\begin{itemize}
+    \pause
+    \item Δύο φωλιασμένοι βρόχοι, καθένας εκ των οποίων εκτελεί $\mathcal{O}(n)$ επαναλήψεις.
+    \pause
+    \item Υπολογισμός συνάρτησης \cppinline{sqrt} εντός των βρόχων, πολυπλοκότητας $\mathcal{O}(\lg a)$. %, όπου
+    % \begin{align*}
+    %     a = \max_{1 \leq i < j \leq n}\left\{(X[i] - X[j])^{2} + (Y[i] - Y[j])^{2}\right\}.
+    % \end{align*}
+    \pause
+    \item Κάποιες πράξεις κόστους $\mathcal{O}(1)$ εντός των βρόχων.
+    \pause
+    \item Συνολικά, ο χρόνος εκτέλεσης είναι $\mathcal{O}(n^2 \lg a)$, όπου
+    \begin{align*}
+        a = \max_{0 \leq i < j \leq n - 1}\left\{(X[i] - X[j])^{2} + (Y[i] - Y[j])^{2}\right\}.
+    \end{align*}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Επαναληπτική εξαντλητική εξέταση}{Εγγύτερο ζεύγος σημείων}
+    \begin{block}{Παρατήρηση.}
+        Η συνάρτηση $\sqrt{x}$ είναι γνησίως αύξουσα, δηλαδή για $0 \leq a < b$ ισχύει $\sqrt{a} < \sqrt{b}$.
+        Επομένως η ρίζα δεν επηρεάζει τη σύγκριση των αποστάσεων και μπορούμε να την αγνοήσουμε,
+        μέχρις ότου εκτυπώσουμε το αποτέλεσμα. Έτσι, έχουμε ότι
+        \begin{cpp}
+            double currentDistance = (X[i] - X[j]) * (X[i] - X[j]) + (Y[i] - Y[j]) * (Y[i] - Y[j]);
+        \end{cpp}
+        και επίσης, στο τέλος προσθέτουμε την εντολή
+        \begin{cpp}
+            minimumDistance = sqrt(minimumDistance);
+        \end{cpp}
+    \end{block}
+    %\vspace{0.25cm}
+    \pause
+    \field{Πολυπλοκότητα μετά την αλλαγή:}
+    \begin{itemize}
+        \item $\mathcal{O}(n^2 + \lg a)$.
+    \end{itemize}
+\end{frame}
+
+\subsection{Μέγιστο άθροισμα υποπίνακα}
+\begin{frame}{Επαναληπτική εξαντλητική εξέταση}{Μέγιστο άθροισμα υποπίνακα}
+    \field{Είσοδος:}
+    \begin{itemize}
+        \pause
+        \item Πίνακας $A[1..n]$ ακέραιων αριθμών.
+    \end{itemize}
+    \pause
+    \field{Έξοδος:} 
+    \begin{itemize}
+        \pause
+        \item Το μέγιστο άθροισμα διαδοχικών αριθμών του πίνακα. Ισοδύναμα, 
+        \begin{align*}
+            \text{maximumSubarraySum} = \max_{1 \leq i \leq j \leq n}\left\{\sum_{k = i}^{j} A[k]\right\}.
+        \end{align*}
+    \end{itemize}
+    \pause
+    \field{Λύση:}
+    \begin{itemize}
+        \pause 
+        \item Δοκιμάζουμε κάθε πιθανό υποπίνακα του $A$. Πιο συγκεκριμένα, για κάθε δυνατή αρχή $i$, δοκιμάζουμε κάθε δυνατό τέλος $j$, υπολογίζοντας 
+        το άθροισμα των στοιχείων $A[i], A[i + 1], \dots, A[j]$.
+        \pause
+        \item Το μεγαλύτερο από αυτά αποτελεί και την απάντηση.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Επαναληπτική εξαντλητική εξέταση}{Μέγιστο άθροισμα υποπίνακα}
+\begin{cpp}
+int maximumSubarraySum = numeric_limits<int>::min();
+
+for (int i = 1; i <= N; ++i)
+{
+    for (int j = i; j <= N; ++j)
+    {
+        int currentSum = 0;
+
+        for (int k = i; k <= j; ++k)
+        {
+            currentSum += A[k];
+        }
+
+        maximumSubarraySum = max(maximumSubarraySum, currentSum);
+    }
+}
+\end{cpp}
+\end{frame}
+
+\begin{frame}{Επαναληπτική εξαντλητική εξέταση}{Μέγιστο άθροισμα υποπίνακα}
+% Πλήρης εκτέλεση: για κάθε αρχή i = 1..6, όλα τα τέλη j = i..6 (21 βήματα).
+% Βήματα ανά i: i = 1 → 1–6, i = 2 → 7–11, i = 3 → 12–15, i = 4 → 16–18, i = 5 → 19–20, i = 6 → 21.
+\vspace{0.4cm}
+\centering
+\begin{tikzpicture}
+% Σε κάθε βήμα (\p) η αρχή \i και το τέλος \j. Το βήμα υπολογίζεται από τα i, j:
+% πριν από την αρχή i έχουν γίνει (i-1)(14-i)/2 βήματα (6 + 5 + ... για τις προηγούμενες αρχές).
+\foreach \i in {1,...,6} {
+  \foreach \j in {\i,...,6} {
+    \pgfmathtruncatemacro\p{(\i-1)*(14-\i)/2 + \j - \i + 1}
+    \only<\p>{
+      % Κελιά: η αρχή i σκούρο μπλε, τα δυνατά τέλη j > i ανοιχτό μπλε
+      \filldraw[pdpblue] (\i-1,0) rectangle (\i,1);
+      \ifnum\i<6 \filldraw[pdpblue!15] (\i,0) rectangle (6,1); \fi
+    }
+  }
+}
+
+\draw[pdpmuted] (0,0) grid (6,1);
+
+% Όνομα του πίνακα
+\node[anchor=east] at (-0.2,0.5) {$A$};
+
+% Δείκτες
+\foreach \k in {1,...,6}
+  \node[text=pdpmuted, font=\small] at (\k - 0.5, 1.35) {$\k$};
+
+\foreach \i in {1,...,6} {
+  \foreach \j in {\i,...,6} {
+    \pgfmathtruncatemacro\p{(\i-1)*(14-\i)/2 + \j - \i + 1}
+    \only<\p>{
+      % Τιμές: στο κελί της αρχής i λευκά και έντονα
+      \foreach \v [count=\k] in {1,-3,4,-2,5,-1} {
+        \ifnum\k=\i
+          \node[text=white] at (\k-0.5,0.5) {$\mathbf{\v}$};
+        \else
+          \node at (\k-0.5,0.5) {$\v$};
+        \fi
+      }
+      % Η αρχή i: βέλος πάνω από το κελί i
+      \draw[pdpblue, thick, -latex] (\i-0.5,2.35) -- (\i-0.5,1.65);
+      \node[text=pdpblue, above] at (\i-0.5,2.35) {$i$};
+      % Η αγκύλη από την αρχή i μέχρι το τέλος j, και το βέλος j στο τρέχον τέλος
+      \draw[pdpblue, very thick] (\i-1,-0.1) -- (\i-1,-0.3) -- (\j,-0.3) -- (\j,-0.1);
+      \draw[pdpblue, thick, -latex] (\j-0.5,-1.05) -- (\j-0.5,-0.45);
+      \node[text=pdpblue, below] at (\j-0.5,-1.05) {$j$};
+    }
+  }
+}
+
+% Οι μεταβλητές του κώδικα, ως κελιά κάτω από τον πίνακα, και δίπλα τους (στο ίδιο κουτάκι
+% με το min του δέντρου αναδρομής) η πράξη που τους δίνει τιμή σε κάθε βήμα:
+% currentSum = A[i] + ... + A[j] και maximumSubarraySum = max(maximumSubarraySum, currentSum).
+% Το κελί του maximumSubarraySum γίνεται σκούρο στα βήματα όπου αλλάζει τιμή.
+% Αρχικά maximumSubarraySum = numeric_limits<int>::min(), που εδώ γράφεται -∞.
+\tikzset{
+  var cell/.style={draw=pdpmuted, minimum width=1cm, minimum height=0.7cm, inner sep=0pt},
+  % overlay: δεν αλλάζει το μέγεθος του σχήματος, ώστε να μη μετακινείται από βήμα σε βήμα
+  comp box/.style={anchor=west, overlay, font=\footnotesize, text=pdpblue, fill=white,
+                   draw=pdpblue!40, rounded corners=2pt, inner sep=2pt}
+}
+\node[anchor=east] at (2.35,-2.0) {\cppinline{currentSum}};
+\node[anchor=east] at (2.35,-2.9) {\cppinline{maximumSubarraySum}};
+\node[var cell] (cs) at (3,-2.0) {};
+\node[var cell] (ms) at (3,-2.9) {};
+
+% \p / currentSum / το άθροισμα (κενό όταν ο υποπίνακας έχει ένα στοιχείο) /
+%      προηγούμενο μέγιστο / νέο μέγιστο / 1 αν άλλαξε το μέγιστο
+\foreach \p/\cs/\sumexpr/\prev/\mx/\changed in {
+    1/1/{}/-\infty/1/1,                      2/-2/{1 - 3 = -2}/1/1/0,
+    3/2/{1 - 3 + 4 = 2}/1/2/1,               4/0/{1 - 3 + 4 - 2 = 0}/2/2/0,
+    5/5/{1 - 3 + 4 - 2 + 5 = 5}/2/5/1,       6/4/{1 - 3 + 4 - 2 + 5 - 1 = 4}/5/5/0,
+    7/-3/{}/5/5/0,                           8/1/{-3 + 4 = 1}/5/5/0,
+    9/-1/{-3 + 4 - 2 = -1}/5/5/0,            10/4/{-3 + 4 - 2 + 5 = 4}/5/5/0,
+    11/3/{-3 + 4 - 2 + 5 - 1 = 3}/5/5/0,     12/4/{}/5/5/0,
+    13/2/{4 - 2 = 2}/5/5/0,                  14/7/{4 - 2 + 5 = 7}/5/7/1,
+    15/6/{4 - 2 + 5 - 1 = 6}/7/7/0,          16/-2/{}/7/7/0,
+    17/3/{-2 + 5 = 3}/7/7/0,                 18/2/{-2 + 5 - 1 = 2}/7/7/0,
+    19/5/{}/7/7/0,                           20/4/{5 - 1 = 4}/7/7/0,
+    21/-1/{}/7/7/0} {
+  \only<\p>{
+    \node at (cs) {$\cs$};
+    \ifnum\changed=1
+      \node[var cell, fill=pdpblue, draw=pdpblue, text=white] at (ms) {$\mathbf{\mx}$};
+    \else
+      \node at (ms) {$\mx$};
+    \fi
+    \ifx\sumexpr\empty\else
+      \node[comp box] at ([xshift=0.25cm]cs.east) {$\sumexpr$};
+    \fi
+    \node[comp box] at ([xshift=0.25cm]ms.east) {$\max(\prev, \cs) = \mx$};
+  }
+}
+\end{tikzpicture}
+\pdpskipbuttons   % κουμπιά «Τέλος» και «Παράλειψη» κάτω δεξιά
+\end{frame}
+
+\begin{frame}[fragile]{Επαναληπτική εξαντλητική εξέταση}{Μέγιστο άθροισμα υποπίνακα}
+    \field{Πολυπλοκότητα:}
+    \begin{itemize}
+        \pause
+        \item Τρεις φωλιασμένοι βρόχοι καθένας εκ των οποίων εκτελεί $\mathcal{O}(n)$ επαναλήψεις.
+        \pause
+        \item Πράξεις κόστους $\mathcal{O}(1)$ εντός των βρόχων.
+        \pause
+        \item Συνολικά $\mathcal{O}(n^3)$.
+    \end{itemize}
+    \pause
+    \vspace{0.25cm}
+    \begin{noteblock}{Σημείωση.}
+        Ισοδύναμα, για κάθε δυνατό τέλος $j$ θα μπορούσαμε να δοκιμάζουμε κάθε δυνατή αρχή $i$, διατηρώντας την ίδια χρονική πολυπλοκότητα, κάνοντας την εξής αλλαγή. 
+        \begin{cpp}
+        for (int j = 1; j <= N; ++j) 
+        {
+            for (int i = 1; i <= j; ++i) 
+            {
+                // Ο υπόλοιπος κώδικας παραμένει ίδιος.
+            }
+        }
+        \end{cpp}
+    \end{noteblock}
+\end{frame}
+
+\section{Αναδρομική εξαντλητική εξέταση}
+\subsection{Διαμερισμός στοιχείων}
+\begin{frame}{Αναδρομική εξαντλητική εξέταση}{Διαμερισμός στοιχείων}
+    \field{Είσοδος:}
+    \begin{itemize}
+        \pause
+        \item Πίνακας $A[0..n - 1]$ θετικών ακεραίων.
+    \end{itemize}
+    \pause
+    \field{Έξοδος:} 
+    \begin{itemize}
+        \pause
+        \item  
+        \begin{align*}
+            \text{minimumDifference} =
+            \min_{\substack{I \cup J = [n - 1]_0, \\ I \cap J = \emptyset}}
+            \left\{ \left| \sum_{i \in I} A[i] - \sum_{j \in J} A[j] \right| \right\}.
+        \end{align*}
+    \end{itemize}
+    \pause
+    \field{Λύση:}
+\end{frame}
+
+\begin{frame}[fragile]{Αναδρομική εξαντλητική εξέταση}{Διαμερισμός στοιχείων}
+    \begin{cpp}
+        int minimumDifference(vector<int>& A, int i, int sumI, int sumJ) 
+        {
+            if (i == A.size())
+            {
+                return abs(sumI - sumJ);
+            }
+
+            int putInI = minimumDifference(A, i + 1, sumI + A[i], sumJ);
+            int putInJ = minimumDifference(A, i + 1, sumI, sumJ + A[i]);
+
+            return min(putInI, putInJ);
+        }
+    \end{cpp}
+    \pause
+    \vspace{0.25cm}
+    Η απάντηση στο πρόβλημα δίνεται από την κλήση
+    \vspace{0.25cm}
+    \begin{cpp}
+        minimumDifference(A, 0, 0, 0)
+    \end{cpp}
+\end{frame}
+
+\begin{frame}{Αναδρομική εξαντλητική εξέταση}{Διαμερισμός στοιχείων}
+\centering
+\begin{tikzpicture}
+% Ο πίνακας A και ο δείκτης i της τρέχουσας κλήσης
+\node[anchor=east] at (-6.75,0) {$A$};
+\foreach \v [count=\c from 0] in {3,1,2} {
+  \node[draw=pdpmuted, minimum width=0.6cm, minimum height=0.6cm, inner sep=0pt]
+    at (-6.3+0.6*\c,0) {$\v$};
+  \node[text=pdpmuted, font=\scriptsize] at (-6.3+0.6*\c,0.55) {$\c$};
+}
+% Βήματα: σε κάθε διαφάνεια η τρέχουσα κλήση και το βάθος της (= ο δείκτης i).
+% Μετά από κάθε φύλλο η εκτέλεση ανεβαίνει στον γονιό και συνεχίζει με το επόμενο παιδί.
+% Βάθος 3 σημαίνει i == A.size(), δηλαδή βασική περίπτωση.
+\foreach \d [count=\p] in {0,1,2,3,2,3,2,1,2,3,2,3,2,1,0,1,2,3,2,3,2,1,2,3,2,3,2,1,0} {
+  \only<\p>{
+    \draw[pdpblue, thick, -latex] (-6.3+0.6*\d,1.45) -- (-6.3+0.6*\d,0.8);
+    \node[text=pdpblue, above] at (-6.3+0.6*\d,1.45) {$i$};
+    \ifnum\d=3
+      \draw[pdpmuted, dashed] (-4.8,-0.3) rectangle (-4.2,0.3);
+      \node[text=pdpmuted, font=\scriptsize] at (-4.5,0.55) {$3$};
+    \fi
+  }
+}
+\node[text=pdpmuted, font=\scriptsize, anchor=east] at (6,0.45) {κόμβος: $(\cppinline{sumI}, \cppinline{sumJ})$};
+\path (-6.3,1.85);   % ίδιο ύψος σε όλα τα βήματα, και στο τελευταίο που δεν έχει βέλος i
+
+% Κόμβοι: (sumI, sumJ). visit={διαφάνειες όπου είναι η τρέχουσα κλήση}{πρώτη από αυτές}
+\node[rec node, visit={1,15,29}{1}]   (r)   at (0,0)         {$(0, 0)$};
+\node[rec node, visit={2,8,14}{2}]    (a)   at (-3,-1.3)    {$(3, 0)$};
+\node[rec node, visit={3,5,7}{3}]     (aa)  at (-4.5,-2.6)   {$(4, 0)$};
+\node[rec node, visit={4}{4}]         (aaa) at (-5.25,-3.9) {$(6, 0)$};
+\node[rec node, visit={6}{6}]         (aab) at (-3.75,-3.9) {$(4, 2)$};
+\node[rec node, visit={9,11,13}{9}]   (ab)  at (-1.5,-2.6)   {$(3, 1)$};
+\node[rec node, visit={10}{10}]       (aba) at (-2.25,-3.9) {$(5, 1)$};
+\node[rec node, visit={12}{12}]       (abb) at (-0.75,-3.9) {$(3, 3)$};
+\node[rec node, visit={16,22,28}{16}] (b)   at (3,-1.3)     {$(0, 3)$};
+\node[rec node, visit={17,19,21}{17}] (ba)  at (1.5,-2.6)    {$(1, 3)$};
+\node[rec node, visit={18}{18}]       (baa) at (0.75,-3.9)  {$(3, 3)$};
+\node[rec node, visit={20}{20}]       (bab) at (2.25,-3.9)  {$(1, 5)$};
+\node[rec node, visit={23,25,27}{23}] (bb)  at (4.5,-2.6)    {$(0, 4)$};
+\node[rec node, visit={24}{24}]       (bba) at (3.75,-3.9)  {$(2, 4)$};
+\node[rec node, visit={26}{26}]       (bbb) at (5.25,-3.9)  {$(0, 6)$};
+
+% Ακμές (κλήσεις): αριστερά το A[i] μπαίνει στο I, δεξιά στο J.
+% Το I γράφεται πάνω αριστερά από την ακμή, το J πάνω δεξιά.
+\foreach \u/\v/\p/\s/\pos in {r/a/2/I/left, a/aa/3/I/left, aa/aaa/4/I/left, aa/aab/6/J/right,
+    a/ab/9/J/right, ab/aba/10/I/left, ab/abb/12/J/right, r/b/16/J/right, b/ba/17/I/left,
+    ba/baa/18/I/left, ba/bab/20/J/right, b/bb/23/J/right, bb/bba/24/I/left, bb/bbb/26/J/right} {
+  \draw[thick, reach=\p] (\u) -- (\v)
+    node[midway, font=\scriptsize, text=pdpmuted, above \pos=0pt] {$\s$};
+}
+
+% Επιστροφές: διακεκομμένο καμπύλο βέλος από την κορυφή του παιδιού στον γονιό, στην
+% εξωτερική πλευρά της ακμής, που περνάει πάνω από την ετικέτα I/J. Από αριστερό παιδί
+% καταλήγει οριζόντια στην αριστερή πλευρά του γονιού, από δεξί παιδί στη δεξιά, και
+% σταματά 1.5pt πριν από αυτήν. Η τιμή που επιστρέφεται γράφεται έξω από την καμπύλη.
+% Έντονο στη διαφάνεια της επιστροφής, αχνό μετά.
+%   \side / \anc / \dx: left / west / -1 για αριστερό παιδί, right / east / 1 για δεξί
+\foreach \p/\ch/\up/\side/\anc/\dx/\val in {
+    5/aaa/aa/left/west/-1/6,   7/aab/aa/right/east/1/2,   8/aa/a/left/west/-1/2,
+    11/aba/ab/left/west/-1/4,  13/abb/ab/right/east/1/0,  14/ab/a/right/east/1/0,
+    15/a/r/left/west/-1/0,     19/baa/ba/left/west/-1/0,  21/bab/ba/right/east/1/4,
+    22/ba/b/left/west/-1/0,    25/bba/bb/left/west/-1/2,  27/bbb/bb/right/east/1/6,
+    28/bb/b/right/east/1/2,    29/b/r/right/east/1/0} {
+  \draw[thick, dashed, -latex, ret=\p]
+    ([yshift=1.5pt]\ch.north)
+      .. controls ([shift={(\dx*0.35,0.55)}]\ch.north) and ([xshift=\dx*0.6cm]\up.\anc) ..
+    ([xshift=\dx*1.5pt]\up.\anc)
+    node[pos=0.5, above \side=0pt, font=\footnotesize, retval=\p] {$\val$};
+}
+
+% Η πράξη min: όταν ένας εσωτερικός κόμβος έχει πάρει τιμή και από τα δύο παιδιά του
+% (στο βήμα που του επιστρέφει το δεύτερο), γράφεται δίπλα του το min που υπολογίζει.
+% Μπαίνει πάνω από τον κόμβο, από τη μεριά όπου δεν έρχεται η ακμή του γονιού
+% (αριστερό παιδί: πάνω αριστερά, δεξί παιδί: πάνω δεξιά, ρίζα: πάνω).
+% overlay: δεν αλλάζει το μέγεθος του σχήματος, ώστε να μη μετακινείται από βήμα σε βήμα.
+\foreach \p/\n/\anc/\pos/\txt in {
+    7/aa/north west/above left/{$\min(6, 2) = 2$},     13/ab/north east/above right/{$\min(4, 0) = 0$},
+    14/a/north west/above left/{$\min(2, 0) = 0$},     21/ba/north west/above left/{$\min(0, 4) = 0$},
+    27/bb/north east/above right/{$\min(2, 6) = 2$},   28/b/north east/above right/{$\min(0, 2) = 0$},
+    29/r/north/above/{$\min(0, 0) = 0$}} {
+  \only<\p>{
+    \node[\pos=1pt, overlay, font=\footnotesize, text=pdpblue, fill=white, draw=pdpblue!40,
+          rounded corners=2pt, inner sep=2pt] at (\n.\anc) {\txt};
+  }
+}
+
+% Τα φύλλα επιστρέφουν |sumI - sumJ|: η τιμή γράφεται από κάτω τους μόλις υπολογιστεί
+\foreach \n/\val/\p in {aaa/6/4, aab/2/6, aba/4/10, abb/0/12, baa/0/18, bab/4/20, bba/2/24, bbb/6/26}
+  \node[below, text=pdpblue, font=\footnotesize, shown=\p] at (\n.south) {$\val$};
+
+% Η απάντηση: μετά την επιστροφή στην αρχική κλήση, ένα βέλος από τη ρίζα δείχνει ένα
+% κελί πάνω από το δέντρο με την τιμή που επιστρέφει, στο ίδιο στυλ με τα κελιά των
+% μεταβλητών στο μέγιστο άθροισμα υποπίνακα (όνομα αριστερά, τιμή μέσα στο κελί)
+\begin{scope}[shown=30]
+  \node[draw=pdpmuted, minimum width=1cm, minimum height=0.7cm, inner sep=0pt] (res) at (0,1.45) {$0$};
+  \node[anchor=east] at ([xshift=-0.15cm]res.west) {\cppinline{minimumDifference(A, 0, 0, 0)}};
+  \draw[pdpblue, thick, -latex, shorten <=1.5pt, shorten >=1.5pt] (r.north) -- (res.south);
+\end{scope}
+\end{tikzpicture}
+\pdpskipbuttons   % κουμπιά «Τέλος» και «Παράλειψη» κάτω δεξιά
+\end{frame}
+
+\begin{frame}[fragile]{Αναδρομική εξαντλητική εξέταση}{Διαμερισμός στοιχείων}
+    \begin{noteblock}{Σημείωση.}
+        Το δέντρο είναι συμμετρικό: αν ανταλλάξουμε τα σύνολα $I$ και $J$, η διαφορά
+        \mbox{$|\cppinline{sumI} - \cppinline{sumJ}|$} δεν αλλάζει. Για παράδειγμα, τα φύλλα $(6, 0)$ και $(0, 6)$,
+        ή $(4, 2)$ και $(2, 4)$, δίνουν την ίδια τιμή, και το δεξί υποδέντρο είναι ο «καθρέφτης» του
+        αριστερού. 
+        % Άρα κάθε διαμερισμός εξετάζεται δύο φορές.
+
+        % \vspace{0.2cm}
+        % Αν βάλουμε το πρώτο στοιχείο πάντα στο $I$, δηλαδή ξεκινήσουμε με την κλήση
+        % \begin{cpp}
+        %     minimumDifference(A, 1, A[0], 0)
+        % \end{cpp}
+        % εξετάζουμε τους μισούς διαμερισμούς ($2^{n - 1}$ αντί για $2^n$) και η απάντηση δεν αλλάζει.
+    \end{noteblock}
+    \vspace{0.25cm}
+    \pause
+    \field{Πολυπλοκότητα:}
+    \begin{itemize}
+      \pause
+      \item Κάθε αναδρομική κλήση αντιστοιχεί σε κάποιον κόμβο του δέντρου αναδρομής.
+      \pause
+      \item Το δέντρο αναδρομής αποτελείται από $n + 1$ επίπεδα.
+      \pause
+      \item Το επίπεδο $i \in [n]_0$ περιέχει $2^i$ κόμβους και άρα ο συνολικός αριθμός των κόμβων είναι ίσος με 
+      \begin{align*}
+          \sum_{i = 0}^{n} 2^i = 2^{n + 1} - 1.
+      \end{align*}
+      \pause
+      \item Σε κάθε αναδρομική κλήση (κόμβο) εκτελείται σταθερός αριθμός πράξεων, το οποίο δίνει συνολικό χρόνο το πολύ $c \cdot (2^{n + 1} - 1) = \mathcal{O}(2^n)$.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Αναδρομική εξαντλητική εξέταση}{Διαμερισμός στοιχείων}
+  \begin{cpp}
+    int minimumDifference = numeric_limits<int>::max();
+
+    for (int I = 0; I < (1 << N); ++I)
+    {
+        int sumI = 0;
+        int sumJ = 0;
+
+        for (int i = 0; i < N; ++i)
+        {
+            if (I & (1 << i))
+            {
+                sumI += A[i];
+            }
+            else
+            {
+                sumJ += A[i];
+            }
+            
+            minimumDifference = min(minimumDifference, abs(sumI - sumJ));
+        }
+    }
+  \end{cpp}
+\end{frame}
+
+\pdpclosingframe               % τελευταία σελίδα με τα λογότυπα
+\end{document}

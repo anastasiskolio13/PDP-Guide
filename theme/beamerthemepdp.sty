@@ -2,16 +2,17 @@
 %  beamerthemepdp — θέμα beamer (16:9) στα χρώματα του ΠΔΠ / ΠΑΔΑ
 %
 %  Δομή φακέλου:
-%    Presentations/
+%    PDP-Guide/
 %      theme/            κοινό για όλες: αυτό το αρχείο, images/, fonts/
-%      <Επίπεδο>/        Basic, Junior, Senior
-%        <Όνομα>/        ένας φάκελος ανά παρουσίαση
-%          Όνομα.tex
-%          *.cpp         ό,τι χρειάζεται μόνο αυτή η παρουσίαση (για \cppfile)
+%      Levels/
+%        <Επίπεδο>/      Basic, Junior, Senior
+%          <Όνομα>/      ένας φάκελος ανά παρουσίαση
+%            Όνομα.tex
+%            *.cpp       ό,τι χρειάζεται μόνο αυτή η παρουσίαση (για \cppfile)
 %
 %  Χρήση (XeLaTeX, compile μέσα στον φάκελο της παρουσίασης):
 %    \documentclass[t,aspectratio=169,9pt]{beamer}
-%    \makeatletter\def\input@path{{../../theme/}}\makeatother   % το θέμα είναι στο ../../theme/
+%    \makeatletter\def\input@path{{../../../theme/}}\makeatother   % το θέμα είναι στο ../../../theme/
 %    \usetheme{pdp}
 %    \title{...} \author{...} ...
 %
@@ -26,6 +27,9 @@
 %  Blocks (block, exampleblock, alertblock): πλαϊνή γραμμή, χωρίς μπάρα τίτλου.
 %  Κώδικας: \begin{frame}[fragile] ... \begin{cpp} ... \end{cpp}
 %           ή \cppfile{αρχείο.cpp}
+%           μέσα σε φράση: \cppinline{...} (χωρίς [fragile])
+%  Πλοήγηση: «Περιεχόμενα» κάτω αριστερά σε κάθε διαφάνεια (μόνο του)·
+%            \pdpskipbuttons στο τέλος ενός frame με πολλά βήματα («Τέλος», «Παράλειψη»)
 % =====================================================================
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{beamerthemepdp}[2026/11/11 PDP beamer theme]
@@ -90,10 +94,10 @@
 \definecolor{pdpmuted}{HTML}{64748B}
 
 % ---------- Φάκελοι (σχετικά με το .tex που κάνει compile) ----------
-% Ο φάκελος του θέματος βρίσκεται αυτόματα από το \input@path του .tex (π.χ. {../../theme/}),
+% Ο φάκελος του θέματος βρίσκεται αυτόματα από το \input@path του .tex (π.χ. {../../../theme/}),
 % οπότε οι εικόνες και οι γραμματοσειρές βρίσκονται σε όποιο βάθος κι αν είναι η παρουσίαση.
 \@ifundefined{pdpthemedir}{%
-  \@ifundefined{input@path}{\def\pdpthemedir{../../theme/}}%
+  \@ifundefined{input@path}{\def\pdpthemedir{../../../theme/}}%
     {\edef\pdpthemedir{\expandafter\@firstofone\input@path}}}{}
 \providecommand\pdpcodedir{}            % αρχεία .cpp για το \cppfile (ίδιος φάκελος με το .tex)
 
@@ -120,6 +124,7 @@
 \newif\ifpdptitle    % διαφάνεια τίτλου
 \newif\ifpdpclosing  % τελική διαφάνεια με τα λογότυπα
 \newif\ifpdptitlealllogos \pdptitlealllogostrue % διαφάνεια τίτλου: και τα 3 λογότυπα (false = μόνο το ΠΔΠ)
+\newif\ifpdp@hascontents % υπάρχει κεντρική σελίδα περιεχομένων (για τον σύνδεσμο κάτω αριστερά)
 
 \setbeamersize{text margin left=\pdpmx, text margin right=\pdpmx}
 \setbeamertemplate{navigation symbols}{}
@@ -248,6 +253,35 @@
 \pdpcodelight
 
 \newcommand\pdpcodesize{\fontsize{6.4}{9.6}\selectfont} % ύψος γραμμής 1.5 × μέγεθος, όπως στο VS Code
+
+% ---------- Κώδικας μέσα σε φράση: \cppinline{...} ----------
+% Ίδια γραμματοσειρά (Cascadia Code) και χρώματα με τα πλαίσια κώδικα, στο μέγεθος και στο χρώμα
+% του κειμένου γύρω του (δηλαδή τα ονόματα μεταβλητών παίρνουν το χρώμα του κειμένου). Βάφει
+% λέξεις-κλειδιά (vskw), τύπους (vstype) και αριθμούς (vsnum), όπως το \begin{cpp}.
+% Δεν είναι verbatim: δουλεύει παντού (κόμβοι TikZ, μαθηματικά, \only, frames χωρίς [fragile]),
+% αλλά οι ειδικοί χαρακτήρες γράφονται όπως στο κείμενο: \_ \& \% \# \{ \}.
+\ExplSyntaxOn
+\tl_new:N \l__pdp_inline_tl
+\NewDocumentCommand \cppinline { m }
+  {
+    \text
+      {
+        \tl_set:Nn \l__pdp_inline_tl {#1}
+        \regex_replace_all:nnN { [0-9]+ }
+          { \c{textcolor} \cB\{ vsnum \cE\} \cB\{ \0 \cE\} } \l__pdp_inline_tl
+        \regex_replace_all:nnN
+          { \b(int|long|short|char|bool|float|double|void|unsigned|signed|const|static|auto|
+               return|if|else|for|while|do|break|continue|switch|case|default|true|false|
+               nullptr|struct|class|using|namespace|sizeof|new|delete|template|typename|
+               constexpr)\b }
+          { \c{textcolor} \cB\{ vskw \cE\} \cB\{ \1 \cE\} } \l__pdp_inline_tl
+        \regex_replace_all:nnN
+          { \b(vector|pair|set|map|queue|deque|stack|string|array|bitset|tuple|greater|less|ll)\b }
+          { \c{textcolor} \cB\{ vstype \cE\} \cB\{ \1 \cE\} } \l__pdp_inline_tl
+        \pdpcodefont \tl_use:N \l__pdp_inline_tl
+      }
+  }
+\ExplSyntaxOff
 
 % Το listings τυπώνει * και - με μαθηματικά σύμβολα (χαμηλωμένο αστεράκι, μακρύ πλην) όταν η
 % γραμματοσειρά δεν είναι η \ttfamily του εγγράφου. Του λέμε να κρατά τους χαρακτήρες της Cascadia.
@@ -471,23 +505,33 @@
       \node[anchor=west, inner sep=0pt, text width=\paperwidth-2\pdpmx-\pdplogoh*5.5-9mm,
             font=\usebeamerfont{frametitle}, text=\ifpdpdark white\else pdpblue\fi]
         at (\pdpmx, \paperheight-3.6mm-0.5\pdplogoh)
-        {\insertframetitle\ifx\beamer@framesubtitle\@empty\else\\[-1pt]{\usebeamerfont{framesubtitle}\insertframesubtitle}\fi};
+        {\insertframetitle\ifx\insertframesubtitle\@empty\else\\[-1pt]{\usebeamerfont{framesubtitle}\insertframesubtitle}\fi};
       % λεπτή γραμμή κάτω από τον τίτλο
       \draw[line width=0.5pt, \ifpdpdark white!50!pdpblue\else pdpblue!35\fi]
         (\pdpmx, \paperheight-\pdpliney) -- (\paperwidth-\pdpmx, \paperheight-\pdpliney);
-      % αρίθμηση (όχι στις σελίδες περιεχομένων, που δεν μετράνε)
+      % αρίθμηση (όχι στις σελίδες περιεχομένων, που δεν μετράνε) και, αν υπάρχει η κεντρική
+      % σελίδα περιεχομένων (\pdptocframe{...} χωρίς [..]), σύνδεσμος προς αυτήν
       \ifpdpdark\else
       \node[anchor=south west, inner sep=0pt, font=\tiny, text=pdpmuted]
-        at (\pdpmx, 3.8mm) {\insertframenumber\,/\,\inserttotalframenumber};
+        at (\pdpmx, 3.8mm) {\insertframenumber\,/\,\inserttotalframenumber
+          \ifpdp@hascontents\hspace{1.2em}\hyperlink{pdpcontents}{\pdptoctitle}\fi};
       \fi
     \fi\fi
   \end{tikzpicture}%
 }
 
 % Ο τίτλος σχεδιάζεται στο φόντο· εδώ μόνο κρατάμε χώρο από πάνω και κάτω.
+% Από πάνω ακριβώς όσο φτάνει η γραμμή κάτω από τον τίτλο (\pdpliney), χωρίς επιπλέον κενό.
 \setbeamertemplate{frametitle}{}
-\setbeamertemplate{headline}{\vskip 15.5mm}
+\setbeamertemplate{headline}{\vskip\pdpliney}
 \setbeamertemplate{footline}{\vskip 4.5mm}
+% Στοίχιση πάνω ([t]): το beamer βάζει 0.2cm κενό πριν από την πρώτη γραμμή· εδώ το βγάζουμε,
+% ώστε το περιεχόμενο να ξεκινά αμέσως κάτω από τη γραμμή του τίτλου.
+\define@key{beamerframe}{t}[true]{%
+  \beamer@frametopskip=0pt plus .5\paperheight\relax
+  \beamer@framebottomskip=0pt plus 1fill\relax
+  \beamer@frametopskipautobreak=\beamer@frametopskip\relax
+  \beamer@framebottomskipautobreak=\beamer@framebottomskip\relax}
 
 % ---------- Πίνακας περιεχομένων (στις μπλε διαφάνειες) ----------
 \setbeamertemplate{section in toc}{%
@@ -526,12 +570,34 @@
 
 % \pdptocframe{Τίτλος}                  όλες οι ενότητες
 % \pdptocframe[currentsection]{Τίτλος}  η τρέχουσα λευκή, οι άλλες αχνές
+% Η κεντρική (χωρίς [..]) γίνεται ο προορισμός του συνδέσμου «Περιεχόμενα» στο κάτω μέρος
+% κάθε διαφάνειας. Οι ενότητες και υποενότητες στις σελίδες περιεχομένων είναι σύνδεσμοι.
 \newcommand\pdptocframe[2][]{%
   \begingroup\pdpdarktrue
   \setbeamercolor{normal text}{fg=white}%
   \setbeamercolor{structure}{fg=white}%
-  \begin{frame}[noframenumbering]\frametitle{#2}\vspace{2mm}\tableofcontents[#1]\end{frame}%
+  \begin{frame}[noframenumbering]\frametitle{#2}%
+    \if\relax\detokenize{#1}\relax\hypertarget{pdpcontents}{}\global\pdp@hascontentstrue\fi
+    \vspace{2mm}\tableofcontents[#1]\end{frame}%
   \endgroup}
+
+% ---------- Κουμπιά για σχήματα με πολλά βήματα ----------
+% \pdpskipbuttons, στο τέλος ενός frame: κάτω δεξιά, σε κάθε βήμα του, δύο κουμπιά
+%   «Τέλος»     πηγαίνει στο τελευταίο βήμα του ίδιου frame
+%   «Παράλειψη» πηγαίνει στην αρχή του επόμενου frame
+% Στο τελευταίο βήμα του frame δεν εμφανίζονται (εκεί δεν έχουν νόημα).
+% Χρειάζεται δύο compile (όπως η αρίθμηση).
+\setbeamercolor{button}{bg=pdpblue!10, fg=pdpblue}
+\setbeamercolor{button border}{fg=pdpblue!40}
+\newcommand\pdpskipbuttons{%
+  \ifnum\c@page<\insertframeendpage\relax
+  \begin{tikzpicture}[remember picture, overlay]
+    \node[anchor=south east, inner sep=0pt]
+      at ([xshift=-\pdpmx, yshift=3.2mm]current page.south east)
+      {\hyperlinkframeend{\beamerskipbutton{Τέλος}}\hspace{1mm}%
+       \hyperlinkframestartnext{\beamergotobutton{Παράλειψη}}};
+  \end{tikzpicture}%
+  \fi}
 
 % Τελική διαφάνεια: μπλε φόντο με τα λογότυπα ΠΑΔΑ – ΠΔΠ – ΕΜΠ σε λευκό
 \newcommand\pdpclosingframe{%
